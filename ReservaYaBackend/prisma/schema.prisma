@@ -1,0 +1,438 @@
+// Prisma schema for ReservaYA
+// https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Core & Authentication
+model Restaurant {
+  id             String   @id @default(cuid())
+  organizationId String?  @map("organization_id")
+  businessCode   String   @unique @map("business_code")
+  name           String
+  taxId          String?  @map("tax_id")
+  address        String?
+  latitude       Decimal? @db.Decimal(10, 8) // GPS latitude (-90 to 90)
+  longitude      Decimal? @db.Decimal(11, 8) // GPS longitude (-180 to 180)
+  status         String   @default("pending") // pending, active, suspended
+  config         String   @default("{}")
+  description    String?
+  phone          String?
+  image          String?
+  category       String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization       Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  employees          Employee[]
+  tables             Table[]
+  areas              Area[]
+  reservations       Reservation[]
+  orders             Order[]
+  menuItems          MenuItem[]
+  menuCategories     MenuCategory[]
+  marketingCampaigns MarketingCampaign[]
+  reviews            Review[]
+  likes              Like[]
+  inventoryItems     InventoryItem[]
+  customerProfiles   CustomerProfile[]
+  invoices           Invoice[]
+  activityLogs       ActivityLog[]
+  subscription       Subscription?
+
+  @@map("restaurants")
+}
+
+model Employee {
+  id           String   @id @default(cuid())
+  restaurantId String   @map("restaurant_id")
+  fullName     String?  @map("full_name")
+  email        String
+  pinHash      String   @map("pin_hash")
+  role         String   // 'manager', 'chef', 'waiter', 'host'
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  orders       Order[]
+  activityLogs ActivityLog[]
+
+  @@unique([restaurantId, email])
+  @@map("employees")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  fullName     String?  @map("full_name")
+  phone        String?
+  preferences  String   @default("{}")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  reservations      Reservation[]
+  reviews           Review[]
+  likes             Like[]
+  customerProfiles  CustomerProfile[]
+  ownedOrganizations Organization[]  // Organizations this user owns
+
+  @@map("users")
+}
+
+// Platform Administrator (Super user, not linked to a restaurant)
+model Admin {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  fullName     String?  @map("full_name")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("admins")
+}
+
+// Multi-branch support: Organization groups multiple restaurants
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  ownerId   String   @map("owner_id")
+  logo      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  owner       User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  restaurants Restaurant[]
+
+  @@map("organizations")
+}
+
+// Operations (Layout & Reservations)
+model Area {
+  id           String   @id @default(cuid())
+  restaurantId String   @map("restaurant_id")
+  name         String
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  tables     Table[]
+
+  @@map("areas")
+}
+
+model Table {
+  id            String   @id @default(cuid())
+  restaurantId  String   @map("restaurant_id")
+  areaId        String?  @map("area_id")
+  tableNumber   String?  @map("table_number")
+  capacity      Int
+  posX          Int?     @map("pos_x")
+  posY          Int?     @map("pos_y")
+  shape         String?  @default("rectangle") // rectangle, circle, square for canvas editor
+  currentStatus String   @default("free") @map("current_status") // free, occupied, dirty, reserved
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  restaurant   Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  area         Area?         @relation(fields: [areaId], references: [id], onDelete: SetNull)
+  reservations Reservation[]
+  orders       Order[]
+
+  @@map("tables")
+}
+
+model Reservation {
+  id              String   @id @default(cuid())
+  restaurantId    String   @map("restaurant_id")
+  userId          String?  @map("user_id")
+  tableId         String?  @map("table_id")
+  reservationTime DateTime @map("reservation_time")
+  partySize       Int      @map("party_size")
+  status          String   @default("confirmed") // confirmed, seated, cancelled, no_show
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  user       User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  table      Table?     @relation(fields: [tableId], references: [id], onDelete: SetNull)
+
+  @@map("reservations")
+}
+
+// Menu & Categories
+model MenuCategory {
+  id           String   @id @default(cuid())
+  restaurantId String   @map("restaurant_id")
+  name         String
+  sortOrder    Int      @default(0) @map("sort_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  menuItems  MenuItem[]
+
+  @@map("menu_categories")
+}
+
+model MenuItem {
+  id                String   @id @default(cuid())
+  restaurantId      String   @map("restaurant_id")
+  categoryId        String?  @map("category_id")
+  name              String
+  description       String?
+  price             Decimal
+  category          String?  // Legacy field kept for compatibility
+  productionStation String?  @map("production_station") // kitchen, bar
+  station           String?  // Legacy alias for productionStation
+  isAvailable       Boolean  @default(true) @map("is_available")
+  image             String?
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  restaurant     Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  menuCategory   MenuCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  orderItems     OrderItem[]
+
+  @@map("menu_items")
+}
+
+model Order {
+  id            String   @id @default(cuid())
+  restaurantId  String   @map("restaurant_id")
+  tableId       String   @map("table_id")
+  waiterId      String?  @map("waiter_id")
+  status        String   @default("open") // open, payment_pending, closed
+  total         Decimal  @default(0)
+  tip           Decimal  @default(0)
+  discount      Decimal  @default(0)
+  discountType  String?  @map("discount_type") // 'percentage' | 'fixed'
+  paymentMethod String?  @map("payment_method") // 'cash' | 'card' | 'transfer'
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  restaurant Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  table      Table       @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  waiter     Employee?   @relation(fields: [waiterId], references: [id], onDelete: SetNull)
+  orderItems OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id         String   @id @default(cuid())
+  orderId    String   @map("order_id")
+  menuItemId String   @map("menu_item_id")
+  quantity   Int
+  notes      String?
+  status     String   @default("pending") // pending -> cooking -> ready -> served
+  station    String   // kitchen, bar
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+
+  @@map("order_items")
+}
+
+// Marketing & Reviews
+model MarketingCampaign {
+  id            String    @id @default(cuid())
+  restaurantId  String?   @map("restaurant_id")
+  title         String
+  body          String
+  targetSegment String?   @map("target_segment")
+  sentAt        DateTime? @map("sent_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  restaurant Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@map("marketing_campaigns")
+}
+
+model Review {
+  id           String   @id @default(cuid())
+  restaurantId String   @map("restaurant_id")
+  userId       String   @map("user_id")
+  rating       Int
+  comment      String?
+  replyText    String?  @map("reply_text") // Owner's reply to the review
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("reviews")
+}
+
+model Like {
+  id           String   @id @default(cuid())
+  restaurantId String   @map("restaurant_id")
+  userId       String   @map("user_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, restaurantId])
+  @@map("likes")
+}
+
+// Inventory Management
+model InventoryItem {
+  id           String   @id @default(cuid())
+  restaurantId String   @map("restaurant_id")
+  name         String
+  sku          String?
+  category     String?
+  unit         String   @default("unidad")
+  currentStock Decimal  @default(0) @map("current_stock")
+  minStock     Decimal  @default(5) @map("min_stock")
+  unitCost     Decimal  @default(0) @map("unit_cost")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  restaurant Restaurant          @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  movements  InventoryMovement[]
+
+  @@map("inventory_items")
+}
+
+model InventoryMovement {
+  id        String   @id @default(cuid())
+  itemId    String   @map("item_id")
+  type      String   // 'in', 'out', 'adjustment'
+  quantity  Decimal
+  reason    String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  item InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@map("inventory_movements")
+}
+
+// Customer Management
+model CustomerProfile {
+  id           String    @id @default(cuid())
+  restaurantId String    @map("restaurant_id")
+  userId       String?   @map("user_id")
+  name         String
+  email        String?
+  phone        String?
+  isVIP        Boolean   @default(false) @map("is_vip")
+  isBlocked    Boolean   @default(false) @map("is_blocked")
+  notes        String?
+  totalVisits  Int       @default(0) @map("total_visits")
+  noShows      Int       @default(0) @map("no_shows")
+  lastVisit    DateTime? @map("last_visit")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  user       User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([restaurantId, email])
+  @@map("customer_profiles")
+}
+
+// Invoicing
+model Invoice {
+  id            String   @id @default(cuid())
+  restaurantId  String   @map("restaurant_id")
+  invoiceNumber String   @map("invoice_number")
+  orderId       String?  @map("order_id")
+  customerName  String   @map("customer_name")
+  customerTaxId String?  @map("customer_tax_id")
+  subtotal      Decimal
+  tax           Decimal
+  total         Decimal
+  status        String   @default("pending") // pending, paid, cancelled
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@map("invoices")
+}
+
+// Activity Logging
+model ActivityLog {
+  id           String   @id @default(cuid())
+  restaurantId String   @map("restaurant_id")
+  employeeId   String?  @map("employee_id")
+  action       String   // 'order_created', 'reservation_checkin', 'table_status_change', etc.
+  description  String
+  metadata     String   @default("{}") // JSON for extra data
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  employee   Employee?  @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+
+  @@map("activity_logs")
+}
+
+// Subscription & Billing
+model Plan {
+  id            String   @id @default(cuid())
+  name          String   @unique // 'free', 'starter', 'professional', 'enterprise'
+  displayName   String   @map("display_name")
+  description   String?
+  priceMonthly  Decimal  @default(0) @map("price_monthly")
+  priceYearly   Decimal  @default(0) @map("price_yearly")
+  
+  // Límites del plan
+  maxTables           Int @default(5)   @map("max_tables")
+  maxEmployees        Int @default(1)   @map("max_employees")
+  maxReservationsMonth Int @default(100) @map("max_reservations_month")
+  
+  // Features habilitadas (JSON: {inventory: false, marketing: false, reports: false, customers: false})
+  features      String   @default("{}")
+  
+  // Trial settings
+  trialDays     Int      @default(0) @map("trial_days")
+  
+  isActive      Boolean  @default(true) @map("is_active")
+  sortOrder     Int      @default(0) @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  subscriptions Subscription[]
+  
+  @@map("plans")
+}
+
+model Subscription {
+  id                   String    @id @default(cuid())
+  restaurantId         String    @unique @map("restaurant_id")
+  planId               String    @map("plan_id")
+  
+  status               String    @default("trialing") // trialing, active, past_due, canceled, expired
+  
+  // Payment provider info (Pagadito)
+  paymentCustomerId    String?   @map("payment_customer_id")
+  paymentSubscriptionId String?  @map("payment_subscription_id")
+  
+  currentPeriodStart   DateTime? @map("current_period_start")
+  currentPeriodEnd     DateTime? @map("current_period_end")
+  trialEndsAt          DateTime? @map("trial_ends_at")
+  canceledAt           DateTime? @map("canceled_at")
+  
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  plan       Plan       @relation(fields: [planId], references: [id])
+  
+  @@map("subscriptions")
+}

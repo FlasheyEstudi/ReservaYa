@@ -1,0 +1,18 @@
+
+> reservaya-backend@1.0.0 dev
+> next dev -p 3000 2>&1 | tee dev.log
+
+   ▲ Next.js 15.3.5
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.0.102:3000
+   - Environments: .env
+
+ ✓ Starting...
+ ✓ Ready in 3.8s
+ ○ Compiling /api/restaurant/tables/[id]/status ...
+ ✓ Compiled /api/restaurant/tables/[id]/status in 3s (444 modules)
+prisma:query SELECT "public"."tables"."id", "public"."tables"."restaurant_id", "public"."tables"."area_id", "public"."tables"."table_number", "public"."tables"."capacity", "public"."tables"."pos_x", "public"."tables"."pos_y", "public"."tables"."shape", "public"."tables"."current_status", "public"."tables"."created_at", "public"."tables"."updated_at" FROM "public"."tables" WHERE ("public"."tables"."id" = $1 AND "public"."tables"."restaurant_id" = $2) LIMIT $3 OFFSET $4
+prisma:query SELECT "public"."orders"."id", "public"."orders"."restaurant_id", "public"."orders"."table_id", "public"."orders"."waiter_id", "public"."orders"."status", "public"."orders"."total", "public"."orders"."created_at", "public"."orders"."updated_at" FROM "public"."orders" WHERE ("public"."orders"."table_id" = $1 AND "public"."orders"."status" IN ($2,$3)) LIMIT $4 OFFSET $5
+ PATCH /api/restaurant/tables/cmjdf838100094tgah8i797kx/status 400 in 4632ms
+ ✓ Compiled in 72ms
+ ✓ Compiled in 378ms (279 modules)

@@ -1,0 +1,319 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  password      String?
+  role          UserRole  @default(CUSTOMER)
+  phone         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  reservations  Reservation[]
+  reviews       Review[]
+  favorites     Favorite[]
+  employee      Employee?
+  
+  @@map("users")
+}
+
+model Employee {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  restaurantId  String
+  pin           String    // 6-digit PIN for employee login
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  user          User      @relation(fields: [userId], references: [id])
+  restaurant    Restaurant @relation(fields: [restaurantId], references: [id])
+  orders        Order[]
+  
+  @@map("employees")
+}
+
+model Restaurant {
+  id            String    @id @default(cuid())
+  name          String
+  description   String?
+  address       String
+  city          String
+  phone         String?
+  email         String?
+  logo          String?
+  coverImage    String?
+  category      String    @default("General") // Single category for SQLite compatibility
+  status        RestaurantStatus @default(ACTIVE)
+  plan          String    @default("basic") // basic, premium, enterprise
+  code          String    @unique // REST-99 format
+  currency      String    @default("USD")
+  taxRate       Float     @default(0.10)
+  openingHours  Json?     // {"monday": {"open": "09:00", "close": "22:00"}, ...}
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  employees     Employee[]
+  tables        Table[]
+  reservations  Reservation[]
+  menuItems     MenuItem[]
+  reviews       Review[]
+  layouts       Layout[]
+  campaigns     Campaign[]
+  
+  @@map("restaurants")
+}
+
+model Table {
+  id            String    @id @default(cuid())
+  restaurantId  String
+  number        String
+  capacity      Int
+  zone          String    @default("salon") // salon, terraza
+  x             Float     @default(0)
+  y             Float     @default(0)
+  width         Float     @default(60)
+  height        Float     @default(60)
+  shape         String    @default("round") // round, square, rectangle
+  status        TableStatus @default(FREE)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  restaurant    Restaurant @relation(fields: [restaurantId], references: [id])
+  reservations  Reservation[]
+  orders        Order[]
+  
+  @@map("tables")
+}
+
+model Layout {
+  id            String    @id @default(cuid())
+  restaurantId  String
+  name          String
+  configuration Json      // Array of table positions and configurations
+  isActive      Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  restaurant    Restaurant @relation(fields: [restaurantId], references: [id])
+  
+  @@map("layouts")
+}
+
+model Reservation {
+  id            String    @id @default(cuid())
+  userId        String
+  restaurantId  String
+  tableId       String?
+  date          DateTime
+  time          String
+  people        Int
+  status        ReservationStatus @default(PENDING)
+  specialNotes  String?
+  qrCode        String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  user          User      @relation(fields: [userId], references: [id])
+  restaurant    Restaurant @relation(fields: [restaurantId], references: [id])
+  table         Table?    @relation(fields: [tableId], references: [id])
+  orders        Order[]
+  
+  @@map("reservations")
+}
+
+model MenuItem {
+  id            String    @id @default(cuid())
+  restaurantId  String
+  name          String
+  description   String?
+  price         Float
+  category      String    // Entradas, Platos Fuertes, Bebidas, Postres
+  image         String?
+  isAvailable   Boolean   @default(true)
+  sendTo        String    @default("kitchen") // kitchen, bar
+  preparationTime Int?     // minutes
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  restaurant    Restaurant @relation(fields: [restaurantId], references: [id])
+  orderItems    OrderItem[]
+  
+  @@map("menu_items")
+}
+
+model Order {
+  id            String    @id @default(cuid())
+  reservationId String?
+  tableId       String
+  employeeId    String
+  status        OrderStatus @default(PENDING)
+  totalAmount   Float
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  reservation   Reservation? @relation(fields: [reservationId], references: [id])
+  table         Table     @relation(fields: [tableId], references: [id])
+  employee      Employee  @relation(fields: [employeeId], references: [id])
+  items         OrderItem[]
+  
+  @@map("orders")
+}
+
+model OrderItem {
+  id            String    @id @default(cuid())
+  orderId       String
+  menuItemId    String
+  quantity      Int
+  unitPrice     Float
+  status        ItemStatus @default(PENDING)
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  order         Order     @relation(fields: [orderId], references: [id])
+  menuItem      MenuItem  @relation(fields: [menuItemId], references: [id])
+  
+  @@map("order_items")
+}
+
+model Review {
+  id            String    @id @default(cuid())
+  userId        String
+  restaurantId  String
+  reservationId String?
+  rating        Int       // 1-5 stars
+  comment       String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  user          User      @relation(fields: [userId], references: [id])
+  restaurant    Restaurant @relation(fields: [restaurantId], references: [id])
+  
+  @@map("reviews")
+}
+
+model Favorite {
+  id            String    @id @default(cuid())
+  userId        String
+  restaurantId  String
+  createdAt     DateTime  @default(now())
+  
+  // Relations
+  user          User      @relation(fields: [userId], references: [id])
+  
+  @@unique([userId, restaurantId])
+  @@map("favorites")
+}
+
+model Campaign {
+  id            String    @id @default(cuid())
+  restaurantId  String
+  title         String
+  message       String
+  segment       String    @default("all") // all, inactive_30, vip
+  status        CampaignStatus @default(PENDING)
+  sentAt        DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  restaurant    Restaurant @relation(fields: [restaurantId], references: [id])
+  
+  @@map("campaigns")
+}
+
+model AuditLog {
+  id            String    @id @default(cuid())
+  userId        String?
+  action        String
+  entityType    String
+  entityId      String
+  oldValues     Json?
+  newValues     Json?
+  ipAddress     String?
+  userAgent     String?
+  createdAt     DateTime  @default(now())
+  
+  @@map("audit_logs")
+}
+
+enum UserRole {
+  CUSTOMER
+  ADMIN
+  MANAGER
+  CHEF
+  WAITER
+  HOST
+  BARTENDER
+}
+
+enum RestaurantStatus {
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+}
+
+enum TableStatus {
+  FREE
+  OCCUPIED
+  RESERVED
+  PAYMENT_PENDING
+  CLEANING
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+enum OrderStatus {
+  PENDING
+  COOKING
+  READY
+  DELIVERED
+  CANCELLED
+}
+
+enum ItemStatus {
+  PENDING
+  COOKING
+  READY
+  DELIVERED
+  CANCELLED
+}
+
+enum CampaignStatus {
+  PENDING
+  APPROVED
+  SENT
+  REJECTED
+}

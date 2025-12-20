@@ -1,0 +1,33 @@
+
+> reservaya-frontend@1.0.0 build
+> next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/
+
+ ⚠ `devIndicators.appIsrStatus` is deprecated and no longer configurable. Please remove it from next.config.ts.
+ ⚠ `devIndicators.buildActivity` is deprecated and no longer configurable. Please remove it from next.config.ts.
+   ▲ Next.js 15.3.5
+   - Environments: .env.local, .env
+
+   Creating an optimized production build ...
+Failed to compile.
+
+./src/app/restaurant/[id]/page.tsx
+Error:   [31mx[0m Unexpected token `payload`. Expected ... , *,  (, [, :, , ?, =, an identifier, public, protected, private, readonly, <.
+     ,-[[36;1;4m/home/flashey/Descargas/ReservaYa/ReservaYaFrontend/src/app/restaurant/[id]/page.tsx[0m:171:1]
+ [2m168[0m |           'Content-Type': 'application/json',
+ [2m169[0m |           'Authorization': `Bearer ${token}`
+ [2m170[0m |         },
+ [2m171[0m |         const payload = {
+     : [35;1m              ^^^^^^^[0m
+ [2m172[0m |           restaurant_id: restaurantId,
+ [2m173[0m |           reservation_time: new Date(`${date}T${time}:00`).toISOString(),
+ [2m174[0m |           party_size: people,
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/app/restaurant/[id]/page.tsx
+
+
+> Build failed because of webpack errors

@@ -1,0 +1,14 @@
+
+> reservaya-backend@1.0.0 start
+> PORT=3000 next start -H 0.0.0.0 -p 3000 2>&1 | tee server.log
+
+   ▲ Next.js 15.3.5
+   - Local:        http://localhost:3000
+   - Network:      http://0.0.0.0:3000
+
+ ✓ Starting...
+ ⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.
+ ✓ Ready in 2.8s
+prisma:query SELECT "public"."tables"."id", "public"."tables"."restaurant_id", "public"."tables"."area_id", "public"."tables"."table_number", "public"."tables"."capacity", "public"."tables"."pos_x", "public"."tables"."pos_y", "public"."tables"."shape", "public"."tables"."current_status", "public"."tables"."created_at", "public"."tables"."updated_at" FROM "public"."tables" WHERE ("public"."tables"."id" = $1 AND "public"."tables"."restaurant_id" = $2) LIMIT $3 OFFSET $4
+prisma:query UPDATE "public"."tables" SET "current_status" = $1, "updated_at" = $2 WHERE ("public"."tables"."id" = $3 AND 1=1) RETURNING "public"."tables"."id", "public"."tables"."restaurant_id", "public"."tables"."area_id", "public"."tables"."table_number", "public"."tables"."capacity", "public"."tables"."pos_x", "public"."tables"."pos_y", "public"."tables"."shape", "public"."tables"."current_status", "public"."tables"."created_at", "public"."tables"."updated_at"
+Killed
