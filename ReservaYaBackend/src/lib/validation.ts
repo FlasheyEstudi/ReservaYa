@@ -64,7 +64,8 @@ export const CreateReservationSchema = z.object({
   reservation_time: z.string().datetime(),
   party_size: z.number().min(1),
   user_id: z.string().optional(),
-  table_id: z.string().optional()
+  table_id: z.string().optional(),
+  notes: z.string().max(200).optional()
 });
 
 export const SearchRestaurantsSchema = z.object({

@@ -73,7 +73,8 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { restaurantId } = await req.json();
+        const body = await req.json();
+        const restaurantId = body.restaurantId || body.restaurant_id;
         if (!restaurantId) {
             return NextResponse.json({ error: 'Restaurant ID required' }, { status: 400 });
         }

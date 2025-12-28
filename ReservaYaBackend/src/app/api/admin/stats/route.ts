@@ -154,6 +154,135 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // === CHART DATA CALCULATIONS ===
+
+    // Revenue trend last 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const ordersLast30Days = await db.order.findMany({
+      where: {
+        ...whereClause,
+        status: 'closed',
+        createdAt: { gte: thirtyDaysAgo }
+      },
+      select: {
+        createdAt: true,
+        total: true
+      }
+    });
+
+    // Group by date for revenue trend
+    const revenueByDate = new Map<string, number>();
+    const ordersByDate = new Map<string, number>();
+    const reservationsByDate = new Map<string, number>();
+
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = d.toLocaleDateString('es', { day: '2-digit', month: 'short' });
+      revenueByDate.set(key, 0);
+      ordersByDate.set(key, 0);
+      reservationsByDate.set(key, 0);
+    }
+
+    ordersLast30Days.forEach(order => {
+      const key = order.createdAt.toLocaleDateString('es', { day: '2-digit', month: 'short' });
+      if (revenueByDate.has(key)) {
+        revenueByDate.set(key, (revenueByDate.get(key) || 0) + Number(order.total));
+        ordersByDate.set(key, (ordersByDate.get(key) || 0) + 1);
+      }
+    });
+
+    // Get reservations for activity trend
+    const reservationsLast30Days = await db.reservation.findMany({
+      where: {
+        ...whereClause,
+        reservationTime: { gte: thirtyDaysAgo }
+      },
+      select: { reservationTime: true }
+    });
+
+    reservationsLast30Days.forEach(res => {
+      const key = res.reservationTime.toLocaleDateString('es', { day: '2-digit', month: 'short' });
+      if (reservationsByDate.has(key)) {
+        reservationsByDate.set(key, (reservationsByDate.get(key) || 0) + 1);
+      }
+    });
+
+    const revenue_trend = Array.from(revenueByDate.entries()).map(([date, revenue]) => ({
+      date, revenue
+    }));
+
+    const activity_trend = Array.from(ordersByDate.entries()).map(([date, orders]) => ({
+      date,
+      orders,
+      reservations: reservationsByDate.get(date) || 0
+    }));
+
+    // Orders by day of week
+    const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    const ordersByDayOfWeek = [0, 0, 0, 0, 0, 0, 0];
+
+    ordersLast30Days.forEach(order => {
+      const dayOfWeek = order.createdAt.getDay();
+      ordersByDayOfWeek[dayOfWeek]++;
+    });
+
+    const orders_by_day = dayNames.map((day, idx) => ({
+      day,
+      orders: ordersByDayOfWeek[idx]
+    }));
+
+    // Top restaurants (admin only)
+    let top_restaurants: { name: string; revenue: number }[] = [];
+    if (user.role === 'admin') {
+      const revenueByRestaurant = await db.order.groupBy({
+        by: ['restaurantId'],
+        where: { status: 'closed' },
+        _sum: { total: true }
+      });
+
+      const restaurantIds = revenueByRestaurant.map(r => r.restaurantId);
+      const restaurants = await db.restaurant.findMany({
+        where: { id: { in: restaurantIds } },
+        select: { id: true, name: true }
+      });
+
+      const restaurantMap = new Map(restaurants.map(r => [r.id, r.name]));
+
+      top_restaurants = revenueByRestaurant
+        .map(r => ({
+          name: restaurantMap.get(r.restaurantId) || 'Unknown',
+          revenue: Number(r._sum.total || 0)
+        }))
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 5);
+    }
+
+    // Subscription distribution (admin only)
+    let subscriptions_pie: { name: string; value: number }[] = [];
+    if (user.role === 'admin') {
+      const subsByPlan = await db.subscription.groupBy({
+        by: ['planId'],
+        where: { status: 'active' },
+        _count: { id: true }
+      });
+
+      const planIds = subsByPlan.map(s => s.planId);
+      const plans = await db.plan.findMany({
+        where: { id: { in: planIds } },
+        select: { id: true, name: true }
+      });
+
+      const planMap = new Map(plans.map(p => [p.id, p.name]));
+
+      subscriptions_pie = subsByPlan.map(s => ({
+        name: planMap.get(s.planId) || 'Unknown',
+        value: s._count.id
+      }));
+    }
+
     const stats = {
       overview: {
         total_revenue: Number(revenueResult._sum.total || 0),
@@ -181,6 +310,12 @@ export async function GET(request: NextRequest) {
         items_count: order.orderItems.length
       })),
       restaurant_details: restaurantDetails,
+      // Chart data
+      revenue_trend,
+      orders_by_day,
+      activity_trend,
+      top_restaurants,
+      subscriptions_pie,
       subscription_metrics: undefined
     };
 

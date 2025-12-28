@@ -3,8 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AdminLayout } from '@/components/admin/AdminLayout';
-import { BarChart3, TrendingUp, Store, Users, DollarSign, Calendar } from 'lucide-react';
+import { BarChart3, TrendingUp, Store, Users, DollarSign, Calendar, Activity, PieChart } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    RevenueChart, OrdersByDayChart, SubscriptionsPieChart,
+    ComparisonChart, TopRestaurantsChart
+} from '@/components/admin/charts';
 
 interface Stats {
     overview: {
@@ -24,10 +28,19 @@ interface Stats {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
+interface ChartData {
+    revenue_trend?: { date: string; revenue: number }[];
+    orders_by_day?: { day: string; orders: number }[];
+    subscriptions_pie?: { name: string; value: number }[];
+    activity_trend?: { date: string; orders: number; reservations: number }[];
+    top_restaurants?: { name: string; revenue: number }[];
+}
+
 export default function AdminAnalytics() {
     const router = useRouter();
-    const [stats, setStats] = useState<Stats | null>(null);
+    const [stats, setStats] = useState<(Stats & ChartData) | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [period, setPeriod] = useState<'7d' | '30d' | '90d'>('30d');
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -68,173 +81,146 @@ export default function AdminAnalytics() {
         );
     }
 
-    const weekData = [
-        { day: 'Lun', orders: 24, revenue: 1200 },
-        { day: 'Mar', orders: 31, revenue: 1550 },
-        { day: 'Mie', orders: 28, revenue: 1400 },
-        { day: 'Jue', orders: 35, revenue: 1750 },
-        { day: 'Vie', orders: 42, revenue: 2100 },
-        { day: 'Sab', orders: 58, revenue: 2900 },
-        { day: 'Dom', orders: 45, revenue: 2250 }
-    ];
-
-    const maxOrders = Math.max(...weekData.map(d => d.orders));
-
     return (
-        <AdminLayout title="Analytics" subtitle="Métricas y tendencias de la plataforma">
-            {/* KPIs */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <Card className="bg-white border border-stone-200 hover:border-orange-400 transition-colors">
+        <AdminLayout title="Analytics" subtitle="Análisis detallado de la plataforma">
+            {/* Period Selector */}
+            <div className="flex gap-2 mb-6">
+                {(['7d', '30d', '90d'] as const).map(p => (
+                    <button
+                        key={p}
+                        onClick={() => setPeriod(p)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${period === p
+                            ? 'bg-orange-500 text-white'
+                            : 'bg-white text-stone-600 border border-stone-200 hover:border-orange-400'
+                            }`}
+                    >
+                        {p === '7d' ? '7 días' : p === '30d' ? '30 días' : '90 días'}
+                    </button>
+                ))}
+            </div>
+
+            {/* Key Metrics */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <Card className="bg-white border border-stone-200">
                     <CardContent className="p-5">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-stone-500 text-sm">Ingresos Totales</p>
-                                <p className="text-2xl font-semibold text-stone-800">{formatCurrency(stats?.overview.total_revenue ?? 0)}</p>
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                                <DollarSign className="h-5 w-5 text-orange-600" />
                             </div>
-                            <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
-                                <DollarSign className="h-5 w-5 text-green-500" />
+                            <div>
+                                <p className="text-sm text-stone-500">Ingresos</p>
+                                <p className="text-xl font-bold text-stone-800">{formatCurrency(stats?.overview.total_revenue ?? 0)}</p>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
-                <Card className="bg-white border border-stone-200 hover:border-orange-400 transition-colors">
+                <Card className="bg-white border border-stone-200">
                     <CardContent className="p-5">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-stone-500 text-sm">Órdenes</p>
-                                <p className="text-2xl font-semibold text-stone-800">{stats?.overview.total_orders ?? 0}</p>
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <Activity className="h-5 w-5 text-blue-600" />
                             </div>
-                            <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-                                <BarChart3 className="h-5 w-5 text-blue-500" />
+                            <div>
+                                <p className="text-sm text-stone-500">Órdenes</p>
+                                <p className="text-xl font-bold text-stone-800">{(stats?.overview.total_orders ?? 0).toLocaleString()}</p>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
-                <Card className="bg-white border border-stone-200 hover:border-orange-400 transition-colors">
+                <Card className="bg-white border border-stone-200">
                     <CardContent className="p-5">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-stone-500 text-sm">Restaurantes</p>
-                                <p className="text-2xl font-semibold text-stone-800">{stats?.overview.active_restaurants ?? 0}</p>
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                <Store className="h-5 w-5 text-green-600" />
                             </div>
-                            <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center">
-                                <Store className="h-5 w-5 text-orange-500" />
+                            <div>
+                                <p className="text-sm text-stone-500">Restaurantes</p>
+                                <p className="text-xl font-bold text-stone-800">{stats?.overview.active_restaurants ?? 0}</p>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
-                <Card className="bg-white border border-stone-200 hover:border-orange-400 transition-colors">
+                <Card className="bg-white border border-stone-200">
                     <CardContent className="p-5">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-stone-500 text-sm">Empleados</p>
-                                <p className="text-2xl font-semibold text-stone-800">{stats?.overview.total_employees ?? 0}</p>
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                                <Users className="h-5 w-5 text-purple-600" />
                             </div>
-                            <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
-                                <Users className="h-5 w-5 text-purple-500" />
+                            <div>
+                                <p className="text-sm text-stone-500">Empleados</p>
+                                <p className="text-xl font-bold text-stone-800">{stats?.overview.total_employees ?? 0}</p>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
+            {/* Main Charts Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-8">
+                <Card className="lg:col-span-2 bg-white border border-stone-200">
+                    <CardHeader className="border-b border-stone-100 pb-4">
+                        <CardTitle className="text-lg font-semibold text-stone-800 flex items-center gap-2">
+                            <TrendingUp className="h-5 w-5 text-orange-500" />
+                            Tendencia de Ingresos
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-5">
+                        {stats?.revenue_trend && <RevenueChart data={stats.revenue_trend} height={300} />}
+                    </CardContent>
+                </Card>
+
+                <Card className="bg-white border border-stone-200">
+                    <CardHeader className="border-b border-stone-100 pb-4">
+                        <CardTitle className="text-lg font-semibold text-stone-800 flex items-center gap-2">
+                            <PieChart className="h-5 w-5 text-purple-500" />
+                            Suscripciones
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-5">
+                        {stats?.subscriptions_pie && stats.subscriptions_pie.length > 0 && <SubscriptionsPieChart data={stats.subscriptions_pie} height={270} />}
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Secondary Charts Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
                 <Card className="bg-white border border-stone-200">
                     <CardHeader className="border-b border-stone-100 pb-4">
                         <CardTitle className="text-lg font-semibold text-stone-800 flex items-center gap-2">
                             <BarChart3 className="h-5 w-5 text-blue-500" />
-                            Órdenes Semanales
+                            Órdenes por Día de Semana
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-5">
-                        <div className="flex items-end justify-around h-48 gap-2">
-                            {weekData.map((d, i) => (
-                                <div key={i} className="flex flex-col items-center gap-2 flex-1">
-                                    <div
-                                        className="w-full bg-blue-500 rounded-t transition-all hover:bg-orange-500"
-                                        style={{ height: `${(d.orders / maxOrders) * 100}%`, minHeight: '16px' }}
-                                    ></div>
-                                    <span className="text-xs text-stone-500">{d.day}</span>
-                                </div>
-                            ))}
-                        </div>
+                        {stats?.orders_by_day && <OrdersByDayChart data={stats.orders_by_day} height={280} />}
                     </CardContent>
                 </Card>
 
                 <Card className="bg-white border border-stone-200">
                     <CardHeader className="border-b border-stone-100 pb-4">
                         <CardTitle className="text-lg font-semibold text-stone-800 flex items-center gap-2">
-                            <TrendingUp className="h-5 w-5 text-green-500" />
-                            Ingresos Semanales
+                            <Store className="h-5 w-5 text-green-500" />
+                            Top 5 Restaurantes
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-5">
-                        <div className="flex items-end justify-around h-48 gap-2">
-                            {weekData.map((d, i) => (
-                                <div key={i} className="flex flex-col items-center gap-2 flex-1">
-                                    <div
-                                        className="w-full bg-green-500 rounded-t transition-all hover:bg-orange-500"
-                                        style={{ height: `${(d.revenue / 3000) * 100}%`, minHeight: '16px' }}
-                                    ></div>
-                                    <span className="text-xs text-stone-500">{d.day}</span>
-                                </div>
-                            ))}
-                        </div>
+                        {stats?.top_restaurants && stats.top_restaurants.length > 0 && <TopRestaurantsChart data={stats.top_restaurants} height={280} />}
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Today & Status */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                <Card className="bg-white border border-stone-200">
-                    <CardHeader className="border-b border-stone-100 pb-4">
-                        <CardTitle className="text-lg font-semibold text-stone-800 flex items-center gap-2">
-                            <Calendar className="h-5 w-5 text-orange-500" />
-                            Actividad de Hoy
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-5 space-y-3">
-                        <div className="flex items-center justify-between p-3 bg-stone-50 rounded-lg border border-stone-100 hover:border-orange-400 transition-colors">
-                            <span className="text-stone-600">Órdenes</span>
-                            <span className="text-xl font-semibold text-blue-600">{stats?.today.orders ?? 0}</span>
-                        </div>
-                        <div className="flex items-center justify-between p-3 bg-stone-50 rounded-lg border border-stone-100 hover:border-orange-400 transition-colors">
-                            <span className="text-stone-600">Reservaciones</span>
-                            <span className="text-xl font-semibold text-green-600">{stats?.today.reservations ?? 0}</span>
-                        </div>
-                        <div className="flex items-center justify-between p-3 bg-stone-50 rounded-lg border border-stone-100 hover:border-orange-400 transition-colors">
-                            <span className="text-stone-600">Ingresos</span>
-                            <span className="text-xl font-semibold text-orange-600">{formatCurrency(stats?.today.revenue ?? 0)}</span>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="bg-white border border-stone-200">
-                    <CardHeader className="border-b border-stone-100 pb-4">
-                        <CardTitle className="text-lg font-semibold text-stone-800">Estado de Órdenes</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-5">
-                        {Object.entries(stats?.orders_by_status || {}).length > 0 ? (
-                            <div className="space-y-3">
-                                {Object.entries(stats?.orders_by_status || {}).map(([status, count]) => (
-                                    <div key={status} className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`w-2.5 h-2.5 rounded-full ${status === 'open' ? 'bg-yellow-500' :
-                                                    status === 'closed' ? 'bg-green-500' : 'bg-gray-400'
-                                                }`}></div>
-                                            <span className="text-stone-600 capitalize">{status.replace('_', ' ')}</span>
-                                        </div>
-                                        <span className="font-semibold text-stone-800">{count}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <p className="text-stone-400 text-center py-8">Sin órdenes registradas</p>
-                        )}
-                    </CardContent>
-                </Card>
-            </div>
+            {/* Activity Comparison */}
+            <Card className="bg-white border border-stone-200">
+                <CardHeader className="border-b border-stone-100 pb-4">
+                    <CardTitle className="text-lg font-semibold text-stone-800 flex items-center gap-2">
+                        <Calendar className="h-5 w-5 text-orange-500" />
+                        Comparativa: Órdenes vs Reservas
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="p-5">
+                    {stats?.activity_trend && <ComparisonChart data={stats.activity_trend} height={300} />}
+                </CardContent>
+            </Card>
         </AdminLayout>
     );
 }

@@ -3,15 +3,11 @@ import { db } from '@/lib/db';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { checkRateLimit, getClientIp, createRateLimitKey, RATE_LIMIT_PRESETS } from '@/lib/rateLimit';
+import { getJwtSecret } from '@/lib/auth';
+import { handleOptions } from '@/lib/cors';
 
-function getJwtSecret(): string {
-    const secret = process.env.JWT_SECRET;
-    if (!secret) {
-        throw new Error('FATAL: JWT_SECRET environment variable is not set');
-    }
-    return secret;
-}
 const JWT_SECRET = getJwtSecret();
+
 
 // Unified login - handles Admin, Customer, and Restaurant Manager by email
 // POST /api/auth/login
@@ -154,14 +150,5 @@ export async function POST(request: NextRequest) {
 }
 
 // Handle OPTIONS preflight request for CORS
-export async function OPTIONS() {
-    return new NextResponse(null, {
-        status: 204,
-        headers: {
-            'Access-Control-Allow-Origin': 'http://localhost:3001',
-            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-            'Access-Control-Allow-Credentials': 'true',
-        },
-    });
-}
+export { handleOptions as OPTIONS };
+

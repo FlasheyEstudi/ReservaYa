@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
             tableNumber: reservation.table?.tableNumber,
             restaurantId: reservation.restaurantId,
             restaurantName: reservation.restaurant?.name,
-            notes: '',
+            notes: reservation.notes || '',
             createdAt: reservation.createdAt
         }));
 

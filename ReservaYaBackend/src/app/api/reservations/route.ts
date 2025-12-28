@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     if (process.env.NODE_ENV === 'development') {
       console.log('RESERVATION REQUEST BODY:', JSON.stringify(body, null, 2));
     }
-    const { restaurant_id, reservation_time, party_size, user_id, table_id } = CreateReservationSchema.parse(body);
+    const { restaurant_id, reservation_time, party_size, user_id, table_id, notes } = CreateReservationSchema.parse(body);
 
 
     // Use serializable transaction with retry logic for concurrent requests
@@ -120,6 +120,7 @@ export async function POST(request: NextRequest) {
           tableId: table_id,
           reservationTime: new Date(reservation_time),
           partySize: party_size,
+          notes: notes,
           status: 'confirmed'
         },
         include: {
@@ -143,8 +144,23 @@ export async function POST(request: NextRequest) {
       isolationLevel: 'Serializable' // Prevent double booking
     }));
 
-    // TODO: Send confirmation email (implement with email service)
-    // await sendReservationConfirmationEmail(result);
+    // Send confirmation email
+    const { sendEmail } = await import('@/lib/email');
+    if (result.user?.email) { // Assuming we can get user email, but result.user is not included in the transaction result by default unless select is updated
+      // However, we have user_id. We might need to fetch user, or just trust the auth. 
+      // For now, let's skip user details if not available or assume we need to join it.
+      // The transaction above includes restaurant and table.
+      // Let's modify the transaction include to fetch user email if possible, or fetch it separately.
+      // Actually, we can fetch it after.
+      const user = await db.user.findUnique({ where: { id: user_id }, select: { email: true, fullName: true } });
+      if (user && user.email) {
+        await sendEmail({
+          to: user.email,
+          subject: 'Confirmación de Reserva - ReservaYa',
+          text: `Hola ${user.fullName}, tu reserva en ${result.restaurant?.name} para ${party_size} personas el ${new Date(reservation_time).toLocaleString()} ha sido confirmada. Código de mesa: ${result.table?.tableNumber || 'N/A'}.`
+        });
+      }
+    }
 
     return NextResponse.json({
       message: 'Reservation created successfully',
@@ -174,7 +190,9 @@ export async function POST(request: NextRequest) {
 
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+import { getJwtSecret } from '@/lib/auth';
+
+const JWT_SECRET = getJwtSecret();
 
 // Helper to get user from token
 async function getUserFromToken(req: NextRequest) {

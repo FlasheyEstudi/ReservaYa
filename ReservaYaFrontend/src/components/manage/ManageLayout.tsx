@@ -20,7 +20,8 @@ import {
     BarChart3,
     Megaphone,
     Crown,
-    GitBranch
+    GitBranch,
+    CreditCard
 } from 'lucide-react';
 
 interface ManageLayoutProps {
@@ -66,6 +67,7 @@ const menuGroups = [
         items: [
             { icon: BarChart3, label: 'Reportes', href: '/manage/reports' },
             { icon: Megaphone, label: 'Marketing', href: '/manage/marketing' },
+            { icon: CreditCard, label: 'Fidelidad', href: '/manage/loyalty' },
         ]
     },
     {
@@ -153,10 +155,40 @@ export function ManageLayout({ children, title, subtitle }: ManageLayoutProps) {
         }
     };
 
-    const handleSwitchBranch = (branchId: string) => {
-        localStorage.setItem('selectedBranchId', branchId);
+    const handleSwitchBranch = async (branchId: string) => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
         setShowBranchDropdown(false);
-        window.location.reload();
+
+        try {
+            const res = await fetch(`${API_URL}/organization/switch-branch`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ branchId })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                // Update token and restaurant data
+                localStorage.setItem('token', data.token);
+                const userStr = localStorage.getItem('user');
+                if (userStr) {
+                    const user = JSON.parse(userStr);
+                    user.restaurant = data.restaurant;
+                    localStorage.setItem('user', JSON.stringify(user));
+                }
+                localStorage.setItem('selectedBranchId', branchId);
+                window.location.reload();
+            } else {
+                console.error('Error switching branch');
+            }
+        } catch (error) {
+            console.error('Error switching branch:', error);
+        }
     };
 
     const handleLogout = () => {
@@ -176,7 +208,7 @@ export function ManageLayout({ children, title, subtitle }: ManageLayoutProps) {
     const filteredMenuGroups = menuGroups.map(group => {
         const filteredItems = group.items.filter(item => {
             // Core features (always available)
-            if (['/manage', '/manage/reservations', '/manage/menu', '/manage/layout', '/manage/billing', '/manage/staff', '/manage/settings', '/manage/subscription', '/manage/branches'].includes(item.href)) {
+            if (['/manage', '/manage/reservations', '/manage/menu', '/manage/layout', '/manage/billing', '/manage/staff', '/manage/settings', '/manage/subscription', '/manage/branches', '/manage/loyalty'].includes(item.href)) {
                 return true;
             }
 

@@ -60,9 +60,14 @@ export async function POST(request: NextRequest) {
         // If table is occupied but we didn't find an open order above, it means:
         // 1. Another transaction just took it (Race condition)
         // 2. It's in a zombie state (Occupied but no order) - in this case we might want to allow forcing, but for safety we block.
-        if (tableToCheck?.currentStatus === 'occupied') {
-          throw new Error('Table is currently occupied. Please refresh.');
-        }
+        // Zombie/Seated check:
+        // If table is occupied but no order exists, it implies the Host seated them.
+        // We SHOULD allow creating the order.
+        // The only case to block is if it's some other error, but relying on !order is sufficient prevention for double-orders.
+        // Zombie/Seated check:
+        // If table is occupied but no order exists, it implies the Host seated them (Manual or QR).
+        // We allow creating the order.
+
 
         order = await tx.order.create({
           data: {

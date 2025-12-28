@@ -508,12 +508,15 @@ export default function Profile() {
                 </div>
               </div>
 
-              <div className="flex justify-center md:justify-start gap-2">
+              <div className="flex justify-center md:justify-start gap-2 flex-wrap">
                 <Button variant="secondary" size="sm" className="bg-white/20 hover:bg-white/30 text-white border-0" onClick={openEditModal}>
                   <Edit className="h-4 w-4 mr-1" /> Editar
                 </Button>
                 <Button variant="secondary" size="sm" className="bg-white/20 hover:bg-white/30 text-white border-0" onClick={openPreferencesModal}>
                   <Settings className="h-4 w-4 mr-1" /> Preferencias
+                </Button>
+                <Button variant="secondary" size="sm" className="bg-amber-500/50 hover:bg-amber-500/70 text-white border-0" onClick={() => router.push('/loyalty')}>
+                  <Star className="h-4 w-4 mr-1" /> Tarjetas
                 </Button>
                 <Button variant="secondary" size="sm" className="bg-red-500/30 hover:bg-red-500/50 text-white border-0" onClick={handleLogout}>
                   <LogOut className="h-4 w-4" />

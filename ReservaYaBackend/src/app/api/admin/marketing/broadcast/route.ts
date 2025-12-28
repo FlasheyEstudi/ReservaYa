@@ -64,27 +64,34 @@ export async function POST(request: NextRequest) {
     // 4. Emit WebSocket events to connected clients
 
     // Get target users for the campaign
-    let targetUsers = [];
-    
+    let targetUsers: { id?: string; userId?: string; email?: string | null }[] = [];
+
     if (targetRestaurantId) {
       // Restaurant-specific campaign
-      targetUsers = await db.reservation.findMany({
+      const rawTargetUsers = await db.reservation.findMany({
         where: {
           restaurantId: targetRestaurantId,
           userId: { not: null }
         },
         distinct: ['userId'],
         select: {
-          userId: true
+          userId: true,
+          user: { select: { email: true } }
         }
       });
+      targetUsers = rawTargetUsers.map(r => ({
+        userId: r.userId ?? undefined,
+        email: r.user?.email
+      }));
     } else {
       // Global campaign (admin only)
-      targetUsers = await db.user.findMany({
+      const rawTargetUsers = await db.user.findMany({
         select: {
-          id: true
+          id: true,
+          email: true
         }
       });
+      targetUsers = rawTargetUsers.map(u => ({ userId: u.id, email: u.email }));
     }
 
     // TODO: FCM Push Notifications (if mobile app exists)
@@ -95,11 +102,24 @@ export async function POST(request: NextRequest) {
     //   data: { campaign_id: campaign.id }
     // });
 
-    // TODO: Email notifications
-    // await sendBulkEmail(targetUsers.map(u => u.email), {
-    //   subject: title,
-    //   body: campaignBody
-    // });
+    // Send emails to target users
+    const { sendEmail } = await import('@/lib/email');
+
+    // Process in batches to avoid overwhelming the mock logger or service
+    const BATCH_SIZE = 50;
+    for (let i = 0; i < targetUsers.length; i += BATCH_SIZE) {
+      const batch = targetUsers.slice(i, i + BATCH_SIZE);
+      await Promise.all(batch.map(async (u) => {
+        if (u.email) {
+          await sendEmail({
+            to: u.email,
+            subject: title,
+            text: campaignBody
+          });
+        }
+      }));
+    }
+
 
     return NextResponse.json({
       message: 'Marketing campaign sent successfully',
@@ -148,7 +168,7 @@ export async function GET(request: NextRequest) {
     }
 
     let whereClause: any = {};
-    
+
     // If user is manager, only show campaigns for their restaurant
     if (user.role === 'manager') {
       whereClause.restaurantId = user.rid;

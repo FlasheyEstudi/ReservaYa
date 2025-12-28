@@ -109,7 +109,8 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { restaurantId, rating } = body;
+        const restaurantId = body.restaurantId || body.restaurant_id;
+        const rating = body.rating;
         // Sanitize comment to prevent XSS
         const comment = sanitizeUserContent(body.comment, 2000);
 

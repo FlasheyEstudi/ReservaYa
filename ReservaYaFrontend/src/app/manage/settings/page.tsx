@@ -237,6 +237,17 @@ export default function ManageSettings() {
             });
 
             if (res.ok) {
+                // Update localStorage so sidebar refreshes with new name
+                const userStr = localStorage.getItem('user');
+                if (userStr) {
+                    try {
+                        const user = JSON.parse(userStr);
+                        if (user.restaurant) {
+                            user.restaurant.name = profile.name;
+                            localStorage.setItem('user', JSON.stringify(user));
+                        }
+                    } catch { }
+                }
                 showToast('Perfil guardado exitosamente');
             } else {
                 showToast('Error al guardar en el servidor');

@@ -1,23 +1,44 @@
-'use client';
+"use client";
 
 import { ReactNode, useEffect } from 'react';
 import { useAuthStore } from '@/stores';
+import { socket } from '@/lib/socket';
 
 interface WebSocketProviderProps {
   children: ReactNode;
 }
 
 export function WebSocketProvider({ children }: WebSocketProviderProps) {
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, token } = useAuthStore(); // Assuming token is available in store
 
   useEffect(() => {
-    // Log connection status changes
-    if (isAuthenticated && user) {
-      console.log('WebSocket connection would be established for user:', user.role);
-      // Note: WebSocket connection temporarily disabled for stability
-      // TODO: Re-enable WebSocket integration once socket.io-client import is fixed
+    if (isAuthenticated && user && token) {
+      console.log('Initializing WebSocket for:', user.role);
+      socket.connect(token);
+
+      // Auto-join rooms based on role
+      const role = (user.role as string).toUpperCase();
+      if (role === 'MANAGER' || role === 'WAITER' || role === 'CHEF' || role === 'HOST') {
+        // Join restaurant specific rooms
+        const rid = (user as any).restaurantId || (user as any).rid; // Adjust based on user shape
+        if (rid) {
+          socket.joinRoom(`restaurant_${rid}_all`);
+          if (role === 'CHEF') socket.joinRoom(`restaurant_${rid}_kitchen`);
+          if (role === 'WAITER') socket.joinRoom(`restaurant_${rid}_waiters`);
+          if (role === 'HOST') socket.joinRoom(`restaurant_${rid}_host`);
+        }
+      }
+
+      // Also join per-user room
+      socket.joinRoom(`user_${user.id}`);
     }
-  }, [isAuthenticated, user]);
+
+    return () => {
+      if (isAuthenticated) {
+        socket.disconnect();
+      }
+    };
+  }, [isAuthenticated, user, token]);
 
   return <>{children}</>;
 }

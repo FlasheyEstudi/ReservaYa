@@ -54,8 +54,8 @@ export function AdminLayout({ children, title, subtitle }: AdminLayoutProps) {
 
     useEffect(() => {
         fetchNotifications();
-        // Refresh every 60 seconds
-        const interval = setInterval(fetchNotifications, 60000);
+        // Refresh every 30 seconds
+        const interval = setInterval(fetchNotifications, 30000);
         return () => clearInterval(interval);
     }, []);
 
@@ -69,8 +69,10 @@ export function AdminLayout({ children, title, subtitle }: AdminLayoutProps) {
             });
             if (response.ok) {
                 const data = await response.json();
+                // API now returns read status from database
                 setNotificationCount(data.stats?.unread || 0);
-                setRecentNotifications((data.notifications || []).slice(0, 5));
+                const unreadNotifs = (data.notifications || []).filter((n: any) => !n.read);
+                setRecentNotifications(unreadNotifs.slice(0, 5));
             }
         } catch (err) {
             console.error('Failed to fetch notifications:', err);

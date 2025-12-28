@@ -87,13 +87,18 @@ export async function PATCH(
             }
         });
 
-        // If there's a table associated, free it
+        // If there's a table associated, we DO NOT automatically free it anymore.
+        // The frontend handles the transition to 'reserved' (cleaning) or 'free'.
+        // This prevents the "zombie state" race condition where the table flips to free
+        // while the waiter is setting it to cleaning.
+        /*
         if (order.tableId) {
             await db.table.update({
                 where: { id: order.tableId },
                 data: { currentStatus: 'free' }
             });
         }
+        */
 
         return NextResponse.json({
             message: 'Order closed successfully',

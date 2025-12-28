@@ -105,11 +105,43 @@ export default function BranchesPage() {
         }
     };
 
-    const handleSwitchBranch = (branchId: string) => {
-        // Store the selected branch ID and reload
-        localStorage.setItem('selectedBranchId', branchId);
+    const handleSwitchBranch = async (branchId: string) => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
         showToast('Cambiando de sucursal...');
-        window.location.href = '/manage';
+
+        try {
+            const res = await fetch(`${API_URL}/organization/switch-branch`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ branchId })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                // Update token with new branch
+                localStorage.setItem('token', data.token);
+                // Update user data with new restaurant
+                const userStr = localStorage.getItem('user');
+                if (userStr) {
+                    const user = JSON.parse(userStr);
+                    user.restaurant = data.restaurant;
+                    localStorage.setItem('user', JSON.stringify(user));
+                }
+                localStorage.setItem('selectedBranchId', branchId);
+                window.location.href = '/manage';
+            } else {
+                const error = await res.json();
+                showToast(error.error || 'Error al cambiar de sucursal');
+            }
+        } catch (error) {
+            console.error('Error switching branch:', error);
+            showToast('Error de conexión');
+        }
     };
 
     const getStatusBadge = (status: string) => {

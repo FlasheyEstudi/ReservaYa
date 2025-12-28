@@ -71,7 +71,8 @@ export async function POST(request: NextRequest) {
           businessCode,
           taxId: tax_id,
           organizationId: organization.id,
-          status: 'pending', // Requires approval
+          status: 'active', // Pending approval removed for MVP/Demo
+
           config: JSON.stringify({
             service_charge: 10,
             currency: 'USD'

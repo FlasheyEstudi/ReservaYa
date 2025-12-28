@@ -59,6 +59,9 @@ export default function AdminNotifications() {
                 const data = await response.json();
                 setNotifications(data.notifications || []);
                 setStats(data.stats || null);
+                // Set read IDs from API response
+                const ids = new Set<string>((data.notifications || []).filter((n: any) => n.read).map((n: any) => n.id as string));
+                setReadIds(ids);
             }
         } catch (err) {
             console.error('Failed to fetch:', err);
@@ -67,12 +70,54 @@ export default function AdminNotifications() {
         }
     };
 
-    const markAsRead = (id: string) => {
-        setReadIds(prev => new Set([...prev, id]));
+    const markAsRead = async (id: string) => {
+        if (readIds.has(id)) return; // Already read
+
+        const newReadIds = new Set([...readIds, id]);
+        setReadIds(newReadIds);
+
+        // Update stats to decrement unread count
+        if (stats && stats.unread > 0) {
+            setStats({ ...stats, unread: stats.unread - 1 });
+        }
+
+        // Update notification in local state
+        setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+
+        // Persist to backend
+        const token = localStorage.getItem('token');
+        fetch(`${API_URL}/admin/notifications/read`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ notificationIds: [id] })
+        }).catch(() => { });
     };
 
-    const markAllAsRead = () => {
-        setReadIds(new Set(notifications.map(n => n.id)));
+    const markAllAsRead = async () => {
+        const allIds = notifications.map(n => n.id);
+        setReadIds(new Set(allIds));
+
+        // Update stats
+        if (stats) {
+            setStats({ ...stats, unread: 0 });
+        }
+
+        // Update all notifications in local state
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+
+        // Persist to backend
+        const token = localStorage.getItem('token');
+        fetch(`${API_URL}/admin/notifications/read`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ notificationIds: allIds })
+        }).catch(() => { });
     };
 
     const getTypeIcon = (type: string) => {

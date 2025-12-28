@@ -45,6 +45,7 @@ model Restaurant {
   invoices           Invoice[]
   activityLogs       ActivityLog[]
   subscription       Subscription?
+  loyaltyProgram     LoyaltyProgram?
 
   @@map("restaurants")
 }
@@ -82,6 +83,7 @@ model User {
   reviews           Review[]
   likes             Like[]
   customerProfiles  CustomerProfile[]
+  loyaltyCards      LoyaltyCard[]
   ownedOrganizations Organization[]  // Organizations this user owns
 
   @@map("users")
@@ -97,7 +99,32 @@ model Admin {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
+  notificationReads AdminNotificationRead[]
+
   @@map("admins")
+}
+
+// Platform-wide settings (key-value store for global configuration)
+model PlatformSettings {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy String?  @map("updated_by") // Admin ID who last updated
+
+  @@map("platform_settings")
+}
+
+// Tracks which notifications each admin has read (for badge count)
+model AdminNotificationRead {
+  id             String   @id @default(cuid())
+  adminId        String   @map("admin_id")
+  notificationId String   @map("notification_id") // Generated ID like "user-xxx"
+  readAt         DateTime @default(now()) @map("read_at")
+
+  admin Admin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@unique([adminId, notificationId])
+  @@map("admin_notification_reads")
 }
 
 // Multi-branch support: Organization groups multiple restaurants
@@ -157,6 +184,7 @@ model Reservation {
   tableId         String?  @map("table_id")
   reservationTime DateTime @map("reservation_time")
   partySize       Int      @map("party_size")
+  notes           String?  // Customer special requests (birthday, allergies, etc.)
   status          String   @default("confirmed") // confirmed, seated, cancelled, no_show
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
@@ -435,4 +463,40 @@ model Subscription {
   plan       Plan       @relation(fields: [planId], references: [id])
   
   @@map("subscriptions")
+}
+
+// Loyalty Program - Restaurant defines their loyalty rules
+model LoyaltyProgram {
+  id               String   @id @default(cuid())
+  restaurantId     String   @unique @map("restaurant_id")
+  isActive         Boolean  @default(true) @map("is_active")
+  visitsRequired   Int      @default(10) @map("visits_required") // Visits needed for reward
+  rewardTitle      String   @default("Postre gratis") @map("reward_title")
+  rewardDescription String? @map("reward_description")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  restaurant   Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  loyaltyCards LoyaltyCard[]
+
+  @@map("loyalty_programs")
+}
+
+// Loyalty Card - User's visits at a restaurant
+model LoyaltyCard {
+  id               String    @id @default(cuid())
+  userId           String    @map("user_id")
+  loyaltyProgramId String    @map("loyalty_program_id")
+  currentVisits    Int       @default(0) @map("current_visits")
+  totalVisits      Int       @default(0) @map("total_visits")
+  rewardsRedeemed  Int       @default(0) @map("rewards_redeemed")
+  lastVisitAt      DateTime? @map("last_visit_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  loyaltyProgram LoyaltyProgram @relation(fields: [loyaltyProgramId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, loyaltyProgramId])
+  @@map("loyalty_cards")
 }

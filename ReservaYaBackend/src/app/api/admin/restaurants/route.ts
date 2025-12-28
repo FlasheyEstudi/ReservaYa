@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { authenticateToken, requireRole } from '@/lib/middleware';
+import bcrypt from 'bcrypt';
+import { handleOptions } from '@/lib/cors';
+
 
 // Generate business code
 function generateBusinessCode(name: string): string {
@@ -121,9 +124,9 @@ export async function POST(request: NextRequest) {
 
         // If manager email provided, create employee record with hashed default PIN
         if (managerEmail) {
-            const bcrypt = require('bcrypt');
             const defaultPin = '0000';
             const hashedPin = await bcrypt.hash(defaultPin, 12);
+
 
             await db.employee.create({
                 data: {
@@ -133,7 +136,15 @@ export async function POST(request: NextRequest) {
                     pinHash: hashedPin
                 }
             });
-            // TODO: Send email to manager with temporary PIN
+
+            // Send email to manager with temporary PIN
+            const { sendEmail } = await import('@/lib/email');
+            await sendEmail({
+                to: managerEmail,
+                subject: 'Bienvenido a ReservaYa - Tus Credenciales',
+                text: `Bienvenido. Tu restaurante ${name} ha sido registrado. Tu PIN de acceso temporal es: ${defaultPin}. Por favor cámbialo al ingresar.`
+            });
+
         }
 
         return NextResponse.json({
@@ -226,13 +237,6 @@ export async function PATCH(request: NextRequest) {
 }
 
 // Handle OPTIONS for CORS
-export async function OPTIONS() {
-    return new NextResponse(null, {
-        status: 204,
-        headers: {
-            'Access-Control-Allow-Origin': 'http://localhost:3001',
-            'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        },
-    });
-}
+// Handle OPTIONS for CORS
+export { handleOptions as OPTIONS };
+

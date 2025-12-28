@@ -1,377 +1,328 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
-    Calendar, Users, Star, ChefHat, Shield, Clock, ArrowRight, MapPin,
-    Utensils, Phone, CheckCircle, Smartphone, BarChart3, UserCheck,
-    Bell, CreditCard, Layout, Zap, Heart, TrendingUp, Globe
+    Calendar, Users, Star, ChefHat, ArrowRight, MapPin, Utensils, CheckCircle,
+    Smartphone, BarChart3, Bell, Layout, Zap, Heart, Globe, Menu, X,
+    Clock, CreditCard, TrendingUp, Sparkles, ArrowUpRight, Quote, Wine, Home
 } from 'lucide-react';
 
 export default function LandingPage() {
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'users' | 'restaurants'>('users');
-    const [animatedStats, setAnimatedStats] = useState({ restaurants: 0, reservations: 0, users: 0 });
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [scrollY, setScrollY] = useState(0);
+    const [activeFeature, setActiveFeature] = useState(0);
 
-    // Animate stats on mount
     useEffect(() => {
-        const duration = 2000;
-        const steps = 60;
-        const interval = duration / steps;
+        const handleScroll = () => setScrollY(window.scrollY);
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
-        let step = 0;
+    // Auto-rotate features
+    useEffect(() => {
         const timer = setInterval(() => {
-            step++;
-            const progress = step / steps;
-            setAnimatedStats({
-                restaurants: Math.floor(500 * progress),
-                reservations: Math.floor(25000 * progress),
-                users: Math.floor(10000 * progress)
-            });
-            if (step >= steps) clearInterval(timer);
-        }, interval);
-
+            setActiveFeature((prev) => (prev + 1) % 4);
+        }, 3000);
         return () => clearInterval(timer);
     }, []);
 
-    const userSteps = [
-        { icon: MapPin, title: 'Descubre', desc: 'Explora restaurantes cerca de ti con fotos, menús y reseñas reales', color: 'from-orange-500 to-red-500' },
-        { icon: Calendar, title: 'Reserva', desc: 'Elige fecha, hora y mesa en solo 3 clics. Sin llamadas.', color: 'from-amber-500 to-orange-500' },
-        { icon: Smartphone, title: 'Confirma', desc: 'Recibe confirmación instantánea y código QR en tu celular', color: 'from-yellow-500 to-amber-500' }
-    ];
-
-    const restaurantFeatures = [
-        { icon: Layout, title: 'Gestión Visual de Mesas', desc: 'Diseña el layout de tu restaurante y visualiza ocupación en tiempo real', highlight: true },
-        { icon: UserCheck, title: 'Espacio para Empleados', desc: 'Cada rol tiene su workspace: meseros, cocina, bar, host. Todo conectado.', highlight: true },
-        { icon: BarChart3, title: 'Reportes y Analytics', desc: 'Métricas de ventas, ocupación, platos populares y más', highlight: false },
-        { icon: Bell, title: 'Notificaciones', desc: 'Alertas de reservaciones, órdenes pendientes y stock bajo', highlight: false },
-        { icon: CreditCard, title: 'Facturación Integrada', desc: 'Genera facturas, cierra cuentas y lleva control de ingresos', highlight: false },
-        { icon: Users, title: 'Base de Clientes', desc: 'Conoce a tus clientes VIP, historial de visitas y preferencias', highlight: false }
-    ];
-
-    const testimonials = [
-        { name: 'María García', role: 'Cliente Frecuente', text: '¡Increíble! Reservé mesa para mi cumpleaños en 2 minutos. La app es súper intuitiva.', rating: 5, avatar: 'M' },
-        { name: 'Chef Roberto', role: 'Dueño de Restaurante', text: 'Nuestras reservaciones aumentaron 40% desde que usamos ReservaYa. Los empleados aman sus workspaces.', rating: 5, avatar: 'R' },
-        { name: 'Ana López', role: 'Foodie', text: 'Me encanta poder ver las fotos del menú y las reseñas antes de reservar. Ya tengo 15 restaurantes favoritos.', rating: 5, avatar: 'A' }
+    const features = [
+        { icon: Calendar, title: 'Reserva Instantánea', desc: 'Confirma tu mesa en segundos, 24/7', color: 'orange' },
+        { icon: MapPin, title: 'Descubre Cerca', desc: 'Encuentra los mejores lugares con GPS', color: 'blue' },
+        { icon: Star, title: 'Reseñas Reales', desc: 'Opiniones verificadas de comensales', color: 'amber' },
+        { icon: Smartphone, title: 'Check-in QR', desc: 'Escanea y listo al llegar', color: 'emerald' }
     ];
 
     return (
-        <div className="min-h-screen bg-stone-950 overflow-x-hidden">
-            {/* Header */}
-            <header className="fixed top-0 left-0 right-0 z-50 bg-stone-950/90 backdrop-blur-xl border-b border-stone-800/50">
-                <div className="max-w-7xl mx-auto px-3 md:px-4 h-14 md:h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <img src="/logo.png" alt="ReservaYa Logo" className="w-8 h-8 md:w-10 md:h-10 rounded-lg object-contain" />
-                        <span className="text-lg md:text-2xl font-bold bg-gradient-to-r from-orange-400 to-amber-500 bg-clip-text text-transparent">
-                            ReservaYa
-                        </span>
+        <div className="min-h-screen bg-[#09090b] text-white selection:bg-orange-500/30">
+            {/* ════════════════════════════════════════════════════════════════════ */}
+            {/* HEADER */}
+            {/* ════════════════════════════════════════════════════════════════════ */}
+            <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrollY > 50
+                ? 'bg-[#09090b]/80 backdrop-blur-xl border-b border-white/[0.05]'
+                : ''
+                }`}>
+                <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+                    <div className="flex items-center gap-3 group cursor-pointer" onClick={() => router.push('/')}>
+                        <img src="/logo.png" alt="ReservaYa" className="h-10 w-10 rounded-2xl shadow-lg shadow-orange-500/20 group-hover:shadow-orange-500/40 transition-shadow" />
+                        <span className="text-2xl font-bold tracking-tight">ReservaYa</span>
                     </div>
 
-                    {/* Desktop Nav */}
-                    <nav className="hidden lg:flex items-center gap-8 text-sm">
-                        <a href="#features" className="text-stone-400 hover:text-white transition-colors">Características</a>
-                        <a href="#restaurants" className="text-stone-400 hover:text-white transition-colors">Para Restaurantes</a>
-                        <a href="#pricing" className="text-stone-400 hover:text-white transition-colors">Precios</a>
-                        <a href="#testimonials" className="text-stone-400 hover:text-white transition-colors">Testimonios</a>
+                    <nav className="hidden lg:flex items-center gap-10">
+                        {['Características', 'Para Restaurantes', 'Precios'].map((item, i) => (
+                            <a
+                                key={item}
+                                href={`#${item.toLowerCase().replace(' ', '-')}`}
+                                className="text-sm text-zinc-400 hover:text-white transition-colors relative group"
+                            >
+                                {item}
+                                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-orange-500 to-amber-500 group-hover:w-full transition-all duration-300" />
+                            </a>
+                        ))}
                     </nav>
 
-                    <div className="flex items-center gap-2 md:gap-3">
+                    <div className="hidden lg:flex items-center gap-4">
                         <Button
                             variant="ghost"
                             onClick={() => router.push('/auth/login')}
-                            className="text-orange-400 hover:text-orange-300 hover:bg-orange-500/10 font-medium text-sm px-3 md:px-4"
+                            className="text-zinc-300 hover:text-white hover:bg-white/5"
                         >
-                            <span className="hidden sm:inline">Iniciar Sesión</span>
-                            <span className="sm:hidden">Entrar</span>
+                            Iniciar Sesión
                         </Button>
                         <Button
                             onClick={() => router.push('/auth/register')}
-                            className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-full px-4 md:px-6 text-sm shadow-lg shadow-orange-500/20"
+                            className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white font-medium px-6 rounded-full shadow-lg shadow-orange-500/25"
                         >
-                            <span className="hidden sm:inline">Comenzar Gratis</span>
-                            <span className="sm:hidden">Registro</span>
+                            Comenzar Gratis
                         </Button>
                     </div>
+
+                    <button className="lg:hidden p-2 hover:bg-white/5 rounded-lg" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+                        {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                    </button>
                 </div>
+
+                {/* Mobile Menu */}
+                {mobileMenuOpen && (
+                    <div className="lg:hidden absolute top-full left-0 right-0 bg-[#09090b] border-b border-white/10 p-6 space-y-4 animate-in slide-in-from-top-5">
+                        {['Características', 'Para Restaurantes', 'Precios'].map((item) => (
+                            <a key={item} href={`#${item.toLowerCase().replace(' ', '-')}`} className="block text-lg text-zinc-300 hover:text-white">{item}</a>
+                        ))}
+                        <div className="pt-4 space-y-3">
+                            <Button variant="outline" className="w-full border-zinc-700" onClick={() => router.push('/auth/login')}>Iniciar Sesión</Button>
+                            <Button className="w-full bg-gradient-to-r from-orange-500 to-amber-500" onClick={() => router.push('/auth/register')}>Comenzar Gratis</Button>
+                        </div>
+                    </div>
+                )}
             </header>
 
-            {/* Hero Section */}
-            <section className="relative pt-20 md:pt-28 pb-16 md:pb-24 px-4 overflow-hidden">
-                {/* Animated background */}
-                <div className="absolute inset-0 bg-gradient-to-b from-orange-600/10 via-transparent to-transparent" />
-                <div className="absolute top-20 left-1/4 w-[300px] md:w-[500px] h-[300px] md:h-[500px] bg-orange-500/20 rounded-full blur-[80px] md:blur-[120px] animate-pulse" />
-                <div className="absolute top-40 right-1/4 w-[250px] md:w-[400px] h-[250px] md:h-[400px] bg-amber-500/15 rounded-full blur-[60px] md:blur-[100px] animate-pulse" style={{ animationDelay: '1s' }} />
-                <div className="absolute bottom-0 left-0 right-0 h-24 md:h-32 bg-gradient-to-t from-stone-950 to-transparent" />
+            {/* ════════════════════════════════════════════════════════════════════ */}
+            {/* HERO SECTION */}
+            {/* ════════════════════════════════════════════════════════════════════ */}
+            <section className="relative pt-32 pb-24 lg:pt-44 lg:pb-32 px-6 overflow-hidden">
+                {/* Background Elements */}
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(249,115,22,0.15),transparent_50%)]" />
+                <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-orange-500/5 rounded-full blur-[128px]" />
+                <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:72px_72px]" />
 
-                <div className="max-w-6xl mx-auto text-center relative">
+                <div className="max-w-6xl mx-auto relative">
                     {/* Badge */}
-                    <div className="inline-flex items-center gap-2 mb-6 md:mb-8 px-4 md:px-5 py-2 md:py-2.5 bg-gradient-to-r from-orange-500/10 to-amber-500/10 border border-orange-500/20 rounded-full backdrop-blur-sm">
-                        <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                        </span>
-                        <span className="text-orange-300 text-xs md:text-sm font-medium">+{animatedStats.reservations.toLocaleString()} reservaciones</span>
+                    <div className="flex justify-center mb-10">
+                        <div className="group inline-flex items-center gap-3 px-5 py-2.5 bg-gradient-to-r from-orange-500/10 to-amber-500/10 border border-orange-500/20 rounded-full hover:border-orange-500/40 transition-colors cursor-pointer">
+                            <span className="relative flex h-2.5 w-2.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
+                            </span>
+                            <span className="text-sm text-zinc-300">
+                                <span className="text-orange-400 font-semibold">+25,000</span> reservaciones este mes
+                            </span>
+                            <ArrowUpRight className="h-4 w-4 text-zinc-500 group-hover:text-orange-400 transition-colors" />
+                        </div>
                     </div>
 
-                    <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-4 md:mb-6 leading-[0.95] tracking-tight">
-                        La forma
-                        <span
-                            className="block text-orange-400"
-                            style={{
-                                background: 'linear-gradient(90deg, #fb923c, #fbbf24, #fb923c)',
-                                WebkitBackgroundClip: 'text',
-                                WebkitTextFillColor: 'transparent',
-                                backgroundClip: 'text',
-                            }}
-                        >
-                            más inteligente
-                        </span>
-                        <span className="block text-stone-300 text-2xl sm:text-3xl md:text-5xl lg:text-6xl mt-2 font-normal">
-                            de reservar y gestionar
+                    {/* Main Title */}
+                    <h1 className="text-center text-5xl sm:text-6xl lg:text-8xl font-bold tracking-tight leading-[0.95] mb-8">
+                        <span className="block text-white">Reservar mesa</span>
+                        <span className="block mt-3 bg-gradient-to-r from-orange-400 via-amber-400 to-orange-500 bg-clip-text text-transparent">
+                            nunca fue tan fácil
                         </span>
                     </h1>
 
-                    <p className="text-base sm:text-lg md:text-2xl text-stone-400 mb-8 md:mb-12 max-w-3xl mx-auto leading-relaxed px-2">
-                        Para <span className="text-orange-400 font-semibold">clientes</span>: reserva en segundos.
-                        <br className="sm:hidden" />
-                        <span className="hidden sm:inline"> </span>Para <span className="text-amber-400 font-semibold">restaurantes</span>: gestiona todo.
+                    {/* Subtitle */}
+                    <p className="text-center text-xl lg:text-2xl text-zinc-400 max-w-2xl mx-auto mb-14 leading-relaxed">
+                        La plataforma que conecta a comensales con los mejores restaurantes.
+                        <span className="block text-zinc-300 mt-2">Sin llamadas. Sin esperas. Sin complicaciones.</span>
                     </p>
 
                     {/* CTA Buttons */}
-                    <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center mb-10 md:mb-16 px-4">
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center mb-20">
                         <Button
                             size="lg"
                             onClick={() => router.push('/auth/register')}
-                            className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-full px-8 md:px-12 py-5 md:py-7 text-base md:text-lg font-semibold shadow-2xl shadow-orange-500/30 hover:shadow-orange-500/50 transition-all hover:scale-105"
+                            className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white text-lg px-10 py-7 rounded-full font-medium group shadow-2xl shadow-orange-500/25 hover:shadow-orange-500/40 transition-all"
                         >
-                            <Heart className="h-4 w-4 md:h-5 md:w-5 mr-2" />
+                            <Heart className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" />
                             Quiero Reservar
+                            <ArrowRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
                         </Button>
                         <Button
                             size="lg"
                             variant="outline"
-                            onClick={() => router.push('/auth/register')}
-                            className="rounded-full px-8 md:px-12 py-5 md:py-7 text-base md:text-lg border-2 border-stone-700 text-stone-300 hover:bg-stone-800 hover:text-white hover:border-stone-600 transition-all"
+                            onClick={() => router.push('/pricing')}
+                            className="border-zinc-700 text-zinc-300 hover:bg-white/5 hover:text-white hover:border-zinc-600 text-lg px-10 py-7 rounded-full group"
                         >
-                            <ChefHat className="h-4 w-4 md:h-5 md:w-5 mr-2" />
+                            <ChefHat className="h-5 w-5 mr-2" />
                             Soy Restaurante
                         </Button>
                     </div>
 
-                    {/* Stats */}
-                    <div className="grid grid-cols-3 gap-4 md:gap-8 max-w-2xl mx-auto">
+                    {/* Feature Pills - Animated */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
+                        {features.map((feature, i) => {
+                            const isActive = activeFeature === i;
+                            return (
+                                <div
+                                    key={i}
+                                    className={`p-5 rounded-2xl border transition-all duration-500 cursor-pointer ${isActive
+                                        ? 'bg-gradient-to-br from-orange-500/10 to-amber-500/10 border-orange-500/30 scale-[1.02]'
+                                        : 'bg-white/[0.02] border-white/5 hover:border-white/10'
+                                        }`}
+                                    onClick={() => setActiveFeature(i)}
+                                >
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 transition-all ${isActive ? 'bg-orange-500' : 'bg-zinc-800'
+                                        }`}>
+                                        <feature.icon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-orange-400'}`} />
+                                    </div>
+                                    <h3 className="font-semibold text-white text-sm mb-1">{feature.title}</h3>
+                                    <p className="text-zinc-500 text-xs">{feature.desc}</p>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            </section>
+
+            {/* ════════════════════════════════════════════════════════════════════ */}
+            {/* SOCIAL PROOF */}
+            {/* ════════════════════════════════════════════════════════════════════ */}
+            <section className="py-16 px-6 border-y border-white/5">
+                <div className="max-w-6xl mx-auto">
+                    <div className="flex flex-wrap items-center justify-center gap-x-16 gap-y-8">
                         <div className="text-center">
-                            <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">{animatedStats.restaurants}+</div>
-                            <div className="text-stone-500 text-xs md:text-sm">Restaurantes</div>
+                            <div className="text-4xl lg:text-5xl font-bold text-white mb-1">500+</div>
+                            <div className="text-sm text-zinc-500">Restaurantes Activos</div>
                         </div>
-                        <div className="text-center border-x border-stone-800">
-                            <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">{(animatedStats.reservations / 1000).toFixed(0)}k+</div>
-                            <div className="text-stone-500 text-xs md:text-sm">Reservaciones</div>
-                        </div>
+                        <div className="hidden sm:block w-px h-12 bg-zinc-800" />
                         <div className="text-center">
-                            <div className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">{(animatedStats.users / 1000).toFixed(0)}k+</div>
-                            <div className="text-stone-500 text-xs md:text-sm">Usuarios Felices</div>
+                            <div className="text-4xl lg:text-5xl font-bold text-white mb-1">25K+</div>
+                            <div className="text-sm text-zinc-500">Reservaciones/Mes</div>
+                        </div>
+                        <div className="hidden sm:block w-px h-12 bg-zinc-800" />
+                        <div className="text-center">
+                            <div className="text-4xl lg:text-5xl font-bold text-white mb-1">4.9</div>
+                            <div className="text-sm text-zinc-500 flex items-center justify-center gap-1">
+                                <Star className="h-3 w-3 fill-amber-400 text-amber-400" /> Rating Promedio
+                            </div>
+                        </div>
+                        <div className="hidden sm:block w-px h-12 bg-zinc-800" />
+                        <div className="text-center">
+                            <div className="text-4xl lg:text-5xl font-bold text-white mb-1">10K+</div>
+                            <div className="text-sm text-zinc-500">Usuarios Felices</div>
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* Tab Section - For Users / For Restaurants */}
-            <section id="features" className="py-24 px-4 bg-stone-900/30">
+            {/* ════════════════════════════════════════════════════════════════════ */}
+            {/* FOR RESTAURANTS */}
+            {/* ════════════════════════════════════════════════════════════════════ */}
+            <section id="para-restaurantes" className="py-28 px-6">
                 <div className="max-w-6xl mx-auto">
-                    {/* Toggle */}
-                    <div className="flex justify-center mb-16">
-                        <div className="inline-flex p-1.5 bg-stone-800/50 rounded-full border border-stone-700/50">
-                            <button
-                                onClick={() => setActiveTab('users')}
-                                className={`px-8 py-3 rounded-full font-medium text-sm transition-all ${activeTab === 'users'
-                                    ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg'
-                                    : 'text-stone-400 hover:text-white'
-                                    }`}
-                            >
-                                <Users className="h-4 w-4 inline mr-2" />
-                                Para Usuarios
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('restaurants')}
-                                className={`px-8 py-3 rounded-full font-medium text-sm transition-all ${activeTab === 'restaurants'
-                                    ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg'
-                                    : 'text-stone-400 hover:text-white'
-                                    }`}
-                            >
-                                <ChefHat className="h-4 w-4 inline mr-2" />
+                    <div className="grid lg:grid-cols-2 gap-16 items-center">
+                        <div>
+                            <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-full text-sm text-amber-400 mb-8">
+                                <ChefHat className="h-4 w-4" />
                                 Para Restaurantes
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* User Content */}
-                    {activeTab === 'users' && (
-                        <div className="animate-fadeIn">
-                            <div className="text-center mb-16">
-                                <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
-                                    Reserva en <span className="text-orange-400">3 simples pasos</span>
-                                </h2>
-                                <p className="text-stone-400 text-lg max-w-2xl mx-auto">
-                                    Una interfaz familiar, sin complicaciones. Como pedir un taxi, pero para tu cena.
-                                </p>
                             </div>
+                            <h2 className="text-4xl lg:text-5xl font-bold mb-6 leading-tight">
+                                Gestiona todo tu
+                                <br />
+                                <span className="text-zinc-400">negocio desde aquí</span>
+                            </h2>
+                            <p className="text-xl text-zinc-400 mb-10 leading-relaxed">
+                                Sistema integral con workspaces especializados para cada rol.
+                                Tu equipo siempre conectado y organizado.
+                            </p>
 
-                            <div className="grid md:grid-cols-3 gap-8 mb-16">
-                                {userSteps.map((step, i) => (
-                                    <div key={i} className="relative group">
-                                        {/* Connector line */}
-                                        {i < userSteps.length - 1 && (
-                                            <div className="hidden md:block absolute top-10 left-[60%] w-[80%] h-0.5 bg-gradient-to-r from-stone-700 to-stone-800" />
-                                        )}
-
-                                        <div className="bg-stone-900/50 border border-stone-800 rounded-3xl p-8 hover:border-orange-500/30 transition-all hover:shadow-2xl hover:shadow-orange-500/5 hover:-translate-y-2">
-                                            <div className={`w-20 h-20 bg-gradient-to-br ${step.color} rounded-2xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform`}>
-                                                <step.icon className="h-10 w-10 text-white" />
-                                            </div>
-                                            <div className="text-stone-500 text-sm font-medium mb-2">Paso {i + 1}</div>
-                                            <h3 className="text-2xl font-bold text-white mb-3">{step.title}</h3>
-                                            <p className="text-stone-400 leading-relaxed">{step.desc}</p>
+                            <div className="space-y-5 mb-10">
+                                {[
+                                    { icon: Layout, text: 'Mapa de mesas en tiempo real', highlight: true },
+                                    { icon: BarChart3, text: 'Analytics y reportes detallados' },
+                                    { icon: CreditCard, text: 'Facturación y control de pagos' },
+                                    { icon: Users, text: 'CRM con historial de clientes' }
+                                ].map((item, i) => (
+                                    <div key={i} className={`flex items-center gap-4 p-4 rounded-xl transition-all ${item.highlight ? 'bg-orange-500/5 border border-orange-500/20' : 'hover:bg-white/[0.02]'
+                                        }`}>
+                                        <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${item.highlight ? 'bg-orange-500' : 'bg-zinc-800'}`}>
+                                            <item.icon className={`h-5 w-5 ${item.highlight ? 'text-white' : 'text-orange-400'}`} />
                                         </div>
+                                        <span className="text-zinc-200">{item.text}</span>
                                     </div>
                                 ))}
                             </div>
 
-                            {/* User Benefits */}
-                            <div className="bg-gradient-to-br from-stone-900 to-stone-800 rounded-3xl p-8 md:p-12 border border-stone-700/50">
-                                <div className="grid md:grid-cols-2 gap-12 items-center">
-                                    <div>
-                                        <h3 className="text-2xl md:text-3xl font-bold text-white mb-6">
-                                            Todo lo que necesitas, en tu bolsillo
-                                        </h3>
-                                        <ul className="space-y-4">
-                                            {[
-                                                'Fotos reales de platillos y ambientes',
-                                                'Reseñas verificadas de otros comensales',
-                                                'Código QR para check-in automático',
-                                                'Historial de reservaciones y favoritos',
-                                                'Notificaciones y recordatorios',
-                                                'Cancelación fácil si cambias de planes'
-                                            ].map((item, i) => (
-                                                <li key={i} className="flex items-center gap-3 text-stone-300">
-                                                    <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-                                                    {item}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                    <div className="relative">
-                                        <div className="aspect-[4/5] bg-gradient-to-br from-orange-500/20 to-amber-500/20 rounded-3xl flex items-center justify-center border border-orange-500/20">
-                                            <div className="text-center">
-                                                <Smartphone className="h-24 w-24 text-orange-400 mx-auto mb-4" />
-                                                <p className="text-stone-400">Interfaz móvil intuitiva</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            <Button
+                                onClick={() => router.push('/pricing')}
+                                className="bg-white text-black hover:bg-zinc-200 font-medium px-8 py-6 rounded-full group"
+                            >
+                                Ver Planes
+                                <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                            </Button>
                         </div>
-                    )}
 
-                    {/* Restaurant Content */}
-                    {activeTab === 'restaurants' && (
-                        <div className="animate-fadeIn" id="restaurants">
-                            <div className="text-center mb-16">
-                                <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
-                                    Gestiona tu restaurante <span className="text-amber-400">completo</span>
-                                </h2>
-                                <p className="text-stone-400 text-lg max-w-2xl mx-auto">
-                                    Un sistema integral con workspaces especializados para cada rol de tu equipo.
-                                </p>
-                            </div>
-
-                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-                                {restaurantFeatures.map((feature, i) => (
+                        {/* Workspaces Visual */}
+                        <div className="relative">
+                            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-amber-500/10 rounded-3xl blur-3xl" />
+                            <div className="relative grid grid-cols-2 gap-4">
+                                {[
+                                    { icon: ChefHat, role: 'Cocina', desc: 'Órdenes por estación', color: 'from-red-500/20 to-orange-500/20', iconColor: 'text-red-400' },
+                                    { icon: Utensils, role: 'Mesero', desc: 'Toma de órdenes', color: 'from-blue-500/20 to-cyan-500/20', iconColor: 'text-blue-400' },
+                                    { icon: Wine, role: 'Bar', desc: 'Pedidos de bebidas', color: 'from-purple-500/20 to-pink-500/20', iconColor: 'text-purple-400' },
+                                    { icon: Home, role: 'Host', desc: 'Recibe y asigna', color: 'from-green-500/20 to-emerald-500/20', iconColor: 'text-green-400' }
+                                ].map((ws, i) => (
                                     <div
                                         key={i}
-                                        className={`p-6 rounded-2xl border transition-all hover:-translate-y-1 ${feature.highlight
-                                            ? 'bg-gradient-to-br from-orange-500/10 to-amber-500/10 border-orange-500/30 hover:border-orange-500/50'
-                                            : 'bg-stone-900/50 border-stone-800 hover:border-stone-700'
-                                            }`}
+                                        className={`aspect-square bg-gradient-to-br ${ws.color} border border-white/10 rounded-3xl flex flex-col items-center justify-center hover:scale-105 hover:border-white/20 transition-all cursor-pointer group`}
                                     >
-                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${feature.highlight
-                                            ? 'bg-gradient-to-br from-orange-500 to-amber-500'
-                                            : 'bg-stone-800'
-                                            }`}>
-                                            <feature.icon className={`h-6 w-6 ${feature.highlight ? 'text-white' : 'text-orange-400'}`} />
+                                        <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                                            <ws.icon className={`h-7 w-7 ${ws.iconColor}`} />
                                         </div>
-                                        <h3 className="text-lg font-bold text-white mb-2">{feature.title}</h3>
-                                        <p className="text-stone-400 text-sm">{feature.desc}</p>
+                                        <span className="font-bold text-lg">{ws.role}</span>
+                                        <span className="text-xs text-zinc-500 mt-1">{ws.desc}</span>
                                     </div>
                                 ))}
                             </div>
-
-                            {/* Employee Workspaces */}
-                            <div className="bg-gradient-to-br from-amber-500/10 via-stone-900 to-orange-500/10 rounded-3xl p-8 md:p-12 border border-amber-500/20">
-                                <div className="text-center mb-10">
-                                    <h3 className="text-2xl md:text-3xl font-bold text-white mb-3">
-                                        Workspaces para cada rol
-                                    </h3>
-                                    <p className="text-stone-400">Cada empleado tiene su espacio optimizado</p>
-                                </div>
-
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    {[
-                                        { icon: '👨‍🍳', role: 'Cocina', desc: 'Ve órdenes pendientes por estación' },
-                                        { icon: '🍽️', role: 'Mesero', desc: 'Toma órdenes y maneja mesas' },
-                                        { icon: '🍸', role: 'Bar', desc: 'Pedidos de bebidas separados' },
-                                        { icon: '🏠', role: 'Host', desc: 'Recibe clientes y asigna mesas' }
-                                    ].map((ws, i) => (
-                                        <div key={i} className="bg-stone-800/50 rounded-2xl p-6 text-center border border-stone-700/50 hover:border-amber-500/30 transition-all">
-                                            <div className="text-4xl mb-3">{ws.icon}</div>
-                                            <h4 className="font-bold text-white mb-1">{ws.role}</h4>
-                                            <p className="text-stone-500 text-xs">{ws.desc}</p>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <div className="text-center mt-10">
-                                    <Button
-                                        size="lg"
-                                        onClick={() => router.push('/auth/register')}
-                                        className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-full px-10 font-semibold shadow-lg"
-                                    >
-                                        Registrar mi Restaurante
-                                        <ArrowRight className="h-5 w-5 ml-2" />
-                                    </Button>
-                                </div>
-                            </div>
                         </div>
-                    )}
+                    </div>
                 </div>
             </section>
 
-            {/* Testimonials */}
-            <section id="testimonials" className="py-24 px-4">
+            {/* ════════════════════════════════════════════════════════════════════ */}
+            {/* TESTIMONIALS */}
+            {/* ════════════════════════════════════════════════════════════════════ */}
+            <section className="py-28 px-6 bg-gradient-to-b from-transparent via-zinc-900/30 to-transparent">
                 <div className="max-w-6xl mx-auto">
                     <div className="text-center mb-16">
-                        <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
-                            Lo que dicen de <span className="text-orange-400">nosotros</span>
+                        <h2 className="text-4xl lg:text-5xl font-bold mb-4">
+                            Lo que dicen de nosotros
                         </h2>
+                        <p className="text-zinc-400 text-lg">Miles de usuarios satisfechos</p>
                     </div>
 
                     <div className="grid md:grid-cols-3 gap-6">
-                        {testimonials.map((t, i) => (
-                            <div key={i} className="bg-stone-900/50 border border-stone-800 rounded-2xl p-6 hover:border-orange-500/20 transition-all">
-                                <div className="flex gap-1 mb-4">
-                                    {[...Array(t.rating)].map((_, j) => (
-                                        <Star key={j} className="h-5 w-5 fill-amber-400 text-amber-400" />
+                        {[
+                            { name: 'María García', role: 'Foodie', text: '¡Increíble! Reservé mesa para mi cumpleaños en 2 minutos. La app es súper intuitiva y el QR funciona perfecto.' },
+                            { name: 'Chef Roberto', role: 'Propietario', text: 'Nuestras reservaciones aumentaron 40% y ahora gestiono todo desde mi celular. El mejor sistema que he usado.' },
+                            { name: 'Ana López', role: 'Cliente Frecuente', text: 'Me encanta ver las fotos del menú antes de reservar. Ya tengo mis 15 restaurantes favoritos guardados.' }
+                        ].map((t, i) => (
+                            <div key={i} className="group bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 hover:border-white/10 rounded-3xl p-8 transition-all">
+                                <Quote className="h-8 w-8 text-orange-500/30 mb-4" />
+                                <div className="flex gap-1 mb-6">
+                                    {[...Array(5)].map((_, j) => (
+                                        <Star key={j} className="h-4 w-4 fill-amber-400 text-amber-400" />
                                     ))}
                                 </div>
-                                <p className="text-stone-300 mb-6 leading-relaxed">"{t.text}"</p>
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center text-white font-bold">
-                                        {t.avatar}
+                                <p className="text-zinc-300 leading-relaxed mb-8">"{t.text}"</p>
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center text-white font-bold">
+                                        {t.name.split(' ').map(n => n[0]).join('')}
                                     </div>
                                     <div>
                                         <div className="font-semibold text-white">{t.name}</div>
-                                        <div className="text-stone-500 text-sm">{t.role}</div>
+                                        <div className="text-sm text-zinc-500">{t.role}</div>
                                     </div>
                                 </div>
                             </div>
@@ -380,248 +331,152 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* Pricing Section */}
-            <section id="pricing" className="py-24 px-4 bg-stone-900/50">
+            {/* ════════════════════════════════════════════════════════════════════ */}
+            {/* PRICING */}
+            {/* ════════════════════════════════════════════════════════════════════ */}
+            <section id="precios" className="py-28 px-6">
                 <div className="max-w-6xl mx-auto">
                     <div className="text-center mb-16">
-                        <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
-                            <Zap className="h-4 w-4 text-emerald-400" />
-                            <span className="text-emerald-400 text-sm font-medium">Empieza gratis, crece a tu ritmo</span>
+                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-sm text-emerald-400 mb-6">
+                            <Zap className="h-4 w-4" />
+                            Empieza gratis, escala cuando quieras
                         </div>
-                        <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
-                            Planes para <span className="text-amber-400">cada restaurante</span>
+                        <h2 className="text-4xl lg:text-5xl font-bold mb-4">
+                            Planes simples y transparentes
                         </h2>
-                        <p className="text-stone-400 text-lg max-w-2xl mx-auto">
-                            Funciones básicas gratis para siempre. Planes premium para escalar tu negocio.
-                        </p>
+                        <p className="text-xl text-zinc-400">Sin sorpresas. Sin contratos.</p>
                     </div>
 
-                    {/* Why Upgrade Box */}
-                    <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-2xl p-6 mb-12">
-                        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                            <div className="flex items-center gap-4">
-                                <div className="w-14 h-14 bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl flex items-center justify-center flex-shrink-0">
-                                    <TrendingUp className="h-7 w-7 text-white" />
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-bold text-white mb-1">¿Por qué pagar si es gratis?</h3>
-                                    <p className="text-stone-400 text-sm">
-                                        El plan gratuito es perfecto para empezar. Pero cuando quieras <span className="text-amber-400 font-medium">más mesas, más empleados, inventario, marketing y reportes avanzados</span>, los planes premium te dan todo el poder.
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="flex gap-3 flex-shrink-0">
-                                <div className="text-center px-4 py-2 bg-stone-800/50 rounded-lg">
-                                    <div className="text-2xl font-bold text-amber-400">40%</div>
-                                    <div className="text-xs text-stone-500">más reservas</div>
-                                </div>
-                                <div className="text-center px-4 py-2 bg-stone-800/50 rounded-lg">
-                                    <div className="text-2xl font-bold text-emerald-400">2x</div>
-                                    <div className="text-xs text-stone-500">eficiencia</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Pricing Cards */}
-                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="grid lg:grid-cols-4 gap-5">
                         {[
-                            {
-                                name: 'Gratis',
-                                price: 0,
-                                desc: 'Menú digital básico',
-                                features: ['Menú digital para meseros', 'Mesas ilimitadas', 'Reservas ilimitadas', 'Hasta 3 empleados'],
-                                popular: false,
-                                highlight: null
-                            },
-                            {
-                                name: 'Starter',
-                                price: 19,
-                                desc: 'Menú QR para clientes',
-                                features: ['Todo de Gratis +', 'Menú QR para clientes', 'CRM de clientes', 'Reportes básicos', 'Facturación'],
-                                popular: false,
-                                highlight: 'Menú QR'
-                            },
-                            {
-                                name: 'Profesional',
-                                price: 49,
-                                desc: 'Gestión completa',
-                                features: ['Todo de Starter +', 'Control de inventario', 'Campañas marketing', 'Reportes avanzados', 'Hasta 15 empleados'],
-                                popular: true,
-                                highlight: 'Inventario'
-                            },
-                            {
-                                name: 'Empresarial',
-                                price: 99,
-                                desc: 'Cadenas y franquicias',
-                                features: ['Todo de Profesional +', 'Empleados ilimitados', 'Multi-sucursal', 'Acceso API', 'Soporte prioritario'],
-                                popular: false,
-                                highlight: 'Multi-sucursal'
-                            }
+                            { name: 'Gratis', price: 0, desc: 'Perfecto para empezar', features: ['Menú digital básico', 'Mesas ilimitadas', 'Reservas ilimitadas', '3 empleados'], cta: 'Comenzar Gratis', color: 'emerald' },
+                            { name: 'Starter', price: 19, desc: 'Para restaurantes en crecimiento', features: ['Todo de Gratis', 'Menú QR clientes', 'CRM de clientes', 'Reportes básicos'], cta: 'Elegir Plan', color: 'blue' },
+                            { name: 'Pro', price: 49, desc: 'La opción más popular', features: ['Todo de Starter', 'Inventario', 'Marketing', '15 empleados'], cta: 'Elegir Plan', color: 'orange', popular: true },
+                            { name: 'Enterprise', price: 99, desc: 'Para cadenas y franquicias', features: ['Todo de Pro', 'Multi-sucursal', 'API access', 'Soporte 24/7'], cta: 'Contactar', color: 'purple' }
                         ].map((plan, i) => (
                             <div
                                 key={i}
-                                className={`relative rounded-2xl p-6 border transition-all hover:-translate-y-2 ${plan.popular
-                                    ? 'bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-amber-500/50 shadow-xl shadow-amber-500/10'
-                                    : 'bg-stone-900/50 border-stone-800 hover:border-stone-700'
+                                className={`relative rounded-3xl p-8 border transition-all hover:-translate-y-2 ${plan.popular
+                                    ? 'bg-gradient-to-b from-orange-500/10 to-transparent border-orange-500/30 scale-[1.02]'
+                                    : 'bg-white/[0.02] border-white/5 hover:border-white/10'
                                     }`}
                             >
                                 {plan.popular && (
-                                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                                        <span className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                                    <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                                        <span className="bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-lg shadow-orange-500/25">
                                             MÁS POPULAR
                                         </span>
                                     </div>
                                 )}
 
-                                <div className="text-center mb-6">
-                                    <h3 className="text-lg font-bold text-white mb-1">{plan.name}</h3>
-                                    <p className="text-stone-500 text-sm">{plan.desc}</p>
-                                    {plan.highlight && (
-                                        <span className="inline-block mt-2 px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded-full">
-                                            ✨ {plan.highlight}
-                                        </span>
-                                    )}
+                                <div className="mb-8 pt-2">
+                                    <h3 className="text-xl font-bold mb-1">{plan.name}</h3>
+                                    <p className="text-sm text-zinc-500">{plan.desc}</p>
+                                    <div className="flex items-baseline gap-1 mt-4">
+                                        <span className="text-5xl font-bold">${plan.price}</span>
+                                        <span className="text-zinc-500">/mes</span>
+                                    </div>
                                 </div>
 
-                                <div className="text-center mb-6">
-                                    <span className="text-4xl font-bold text-white">${plan.price}</span>
-                                    <span className="text-stone-500">/mes</span>
-                                </div>
-
-                                <ul className="space-y-3 mb-6">
-                                    {plan.features.map((feature, j) => (
-                                        <li key={j} className="flex items-center gap-2 text-sm text-stone-300">
-                                            <CheckCircle className={`h-4 w-4 flex-shrink-0 ${plan.popular ? 'text-amber-400' : 'text-emerald-400'}`} />
-                                            {feature}
+                                <ul className="space-y-4 mb-8">
+                                    {plan.features.map((f, j) => (
+                                        <li key={j} className="flex items-center gap-3 text-sm text-zinc-300">
+                                            <CheckCircle className={`h-5 w-5 flex-shrink-0 ${plan.popular ? 'text-orange-400' : 'text-emerald-400'}`} />
+                                            {f}
                                         </li>
                                     ))}
                                 </ul>
 
                                 <Button
-                                    className={`w-full rounded-full ${plan.popular
-                                        ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white'
+                                    className={`w-full rounded-full py-6 ${plan.popular
+                                        ? 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white shadow-lg shadow-orange-500/25'
                                         : plan.price === 0
-                                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                                            : 'bg-white/10 hover:bg-white/20 text-white border border-stone-700'
+                                            ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                                            : 'bg-white/10 hover:bg-white/20 text-white'
                                         }`}
-                                    onClick={() => router.push(plan.price === 0 ? '/auth/register-business' : `/pricing?plan=${plan.name.toLowerCase()}`)}
+                                    onClick={() => router.push(plan.price === 0 ? '/auth/register-business' : '/pricing')}
                                 >
-                                    {plan.price === 0 ? 'Comenzar Gratis' : 'Ver características'}
+                                    {plan.cta}
                                 </Button>
                             </div>
                         ))}
                     </div>
 
-                    <p className="text-center text-stone-500 text-sm mt-8">
-                        Mesas y reservas ilimitadas en todos los planes. Planes de pago con 14 días de prueba gratis.
+                    <p className="text-center text-zinc-500 text-sm mt-10">
+                        14 días de prueba gratis en todos los planes de pago. Sin tarjeta de crédito.
                     </p>
                 </div>
             </section>
 
-            {/* Final CTA */}
-            <section className="py-24 px-4 relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-orange-600/20 via-amber-500/20 to-orange-600/20" />
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-orange-500/30 rounded-full blur-[150px]" />
+            {/* ════════════════════════════════════════════════════════════════════ */}
+            {/* FINAL CTA */}
+            {/* ════════════════════════════════════════════════════════════════════ */}
+            <section className="py-32 px-6 relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-t from-orange-500/10 via-transparent to-transparent" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-orange-500/10 rounded-full blur-[120px]" />
 
-                <div className="max-w-4xl mx-auto text-center relative">
-                    <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 bg-white/10 rounded-full">
-                        <Zap className="h-4 w-4 text-amber-400" />
-                        <span className="text-white text-sm">Registro gratuito, sin tarjeta de crédito</span>
-                    </div>
-
-                    <h2 className="text-4xl md:text-6xl font-bold text-white mb-6">
+                <div className="max-w-3xl mx-auto text-center relative">
+                    <h2 className="text-4xl lg:text-6xl font-bold mb-6">
                         ¿Listo para empezar?
                     </h2>
-                    <p className="text-xl text-stone-300 mb-10 max-w-2xl mx-auto">
+                    <p className="text-xl text-zinc-400 mb-10">
                         Únete a miles de usuarios y restaurantes que ya disfrutan ReservaYa.
                     </p>
-
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                        <Button
-                            size="lg"
-                            onClick={() => router.push('/auth/register')}
-                            className="bg-white text-orange-600 hover:bg-orange-50 rounded-full px-12 py-7 text-lg font-bold shadow-2xl"
-                        >
-                            Crear Cuenta Gratis
-                            <ArrowRight className="h-5 w-5 ml-2" />
-                        </Button>
-                    </div>
+                    <Button
+                        size="lg"
+                        onClick={() => router.push('/auth/register')}
+                        className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white text-lg px-12 py-8 rounded-full font-medium group shadow-2xl shadow-orange-500/30"
+                    >
+                        Crear Cuenta Gratis
+                        <ArrowRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+                    <p className="text-zinc-600 text-sm mt-8">Sin tarjeta de crédito • Configuración en 2 minutos</p>
                 </div>
             </section>
 
-            {/* Footer */}
-            <footer className="bg-stone-950 border-t border-stone-800 py-16">
-                <div className="max-w-6xl mx-auto px-4">
-                    <div className="grid md:grid-cols-4 gap-8 mb-12">
-                        <div>
-                            <div className="flex items-center gap-2 mb-4">
-                                <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-500 rounded-lg flex items-center justify-center">
-                                    <Utensils className="h-4 w-4 text-white" />
-                                </div>
-                                <span className="text-xl font-bold text-white">ReservaYa</span>
+            {/* ════════════════════════════════════════════════════════════════════ */}
+            {/* FOOTER */}
+            {/* ════════════════════════════════════════════════════════════════════ */}
+            <footer className="border-t border-white/5 py-16 px-6">
+                <div className="max-w-6xl mx-auto">
+                    <div className="grid md:grid-cols-5 gap-12 mb-12">
+                        <div className="md:col-span-2">
+                            <div className="flex items-center gap-3 mb-4">
+                                <img src="/logo.png" alt="ReservaYa" className="h-10 w-10 rounded-2xl" />
+                                <span className="text-2xl font-bold">ReservaYa</span>
                             </div>
-                            <p className="text-stone-500 text-sm">
-                                La plataforma líder de reservaciones para restaurantes en LATAM.
+                            <p className="text-zinc-500 text-sm mb-6 max-w-xs">
+                                La plataforma líder de reservaciones y gestión para restaurantes en Centroamérica.
                             </p>
+                            <div className="flex items-center gap-2 text-zinc-500 text-sm">
+                                <Globe className="h-4 w-4" />
+                                Hecho con ❤️ en Nicaragua
+                            </div>
                         </div>
 
-                        <div>
-                            <h4 className="font-semibold text-white mb-4">Producto</h4>
-                            <ul className="space-y-2 text-stone-500 text-sm">
-                                <li><a href="#" className="hover:text-white transition-colors">Características</a></li>
-                                <li><a href="#" className="hover:text-white transition-colors">Para Restaurantes</a></li>
-                                <li><a href="#" className="hover:text-white transition-colors">Precios</a></li>
-                            </ul>
-                        </div>
-
-                        <div>
-                            <h4 className="font-semibold text-white mb-4">Compañía</h4>
-                            <ul className="space-y-2 text-stone-500 text-sm">
-                                <li><a href="#" className="hover:text-white transition-colors">Sobre Nosotros</a></li>
-                                <li><a href="#" className="hover:text-white transition-colors">Blog</a></li>
-                                <li><a href="#" className="hover:text-white transition-colors">Carreras</a></li>
-                            </ul>
-                        </div>
-
-                        <div>
-                            <h4 className="font-semibold text-white mb-4">Legal</h4>
-                            <ul className="space-y-2 text-stone-500 text-sm">
-                                <li><a href="#" className="hover:text-white transition-colors">Términos de Servicio</a></li>
-                                <li><a href="#" className="hover:text-white transition-colors">Privacidad</a></li>
-                                <li><a href="#" className="hover:text-white transition-colors">Contacto</a></li>
-                            </ul>
-                        </div>
+                        {[
+                            { title: 'Producto', links: ['Características', 'Precios', 'Para Restaurantes', 'Integraciones'] },
+                            { title: 'Compañía', links: ['Sobre Nosotros', 'Blog', 'Carreras', 'Contacto'] },
+                            { title: 'Legal', links: ['Términos', 'Privacidad', 'Cookies'] }
+                        ].map((col, i) => (
+                            <div key={i}>
+                                <h4 className="font-semibold mb-5">{col.title}</h4>
+                                <ul className="space-y-3">
+                                    {col.links.map((link, j) => (
+                                        <li key={j}>
+                                            <a href="#" className="text-sm text-zinc-500 hover:text-white transition-colors">{link}</a>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        ))}
                     </div>
 
-                    <div className="pt-8 border-t border-stone-800 flex flex-col md:flex-row justify-between items-center gap-4">
-                        <p className="text-stone-600 text-sm">© 2024 ReservaYa. Todos los derechos reservados.</p>
-                        <div className="flex items-center gap-2 text-stone-500 text-sm">
-                            <Globe className="h-4 w-4" />
-                            <span>Hecho con ❤️ en LATAM</span>
-                        </div>
+                    <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
+                        <p className="text-zinc-600 text-sm">© 2024 ReservaYa. Todos los derechos reservados.</p>
                     </div>
                 </div>
             </footer>
-
-            {/* CSS for animations */}
-            <style jsx global>{`
-                @keyframes fadeIn {
-                    from { opacity: 0; transform: translateY(20px); }
-                    to { opacity: 1; transform: translateY(0); }
-                }
-                .animate-fadeIn {
-                    animation: fadeIn 0.5s ease-out;
-                }
-                @keyframes gradient {
-                    0%, 100% { background-position: 0% 50%; }
-                    50% { background-position: 100% 50%; }
-                }
-                .animate-gradient {
-                    background-size: 200% 200%;
-                    animation: gradient 3s ease infinite;
-                }
-            `}</style>
         </div>
     );
 }

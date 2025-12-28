@@ -38,6 +38,8 @@ export default function ManageInventory() {
     const [searchTerm, setSearchTerm] = useState('');
     const [showModal, setShowModal] = useState(false);
     const [showMovementModal, setShowMovementModal] = useState(false);
+    const [hasAccess, setHasAccess] = useState(true);
+
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const [movementProduct, setMovementProduct] = useState<Product | null>(null);
     const [movementData, setMovementData] = useState({ type: 'in' as 'in' | 'out', quantity: 0, reason: '' });
@@ -59,10 +61,10 @@ export default function ManageInventory() {
 
             if (res.status === 403) {
                 setProducts([]);
-                // Optionally set a specialized state to show "Upgrade Plan" UI
-                // For now, just ensuring it doesn't throw generic error
+                setHasAccess(false);
                 return;
             }
+
 
             if (!res.ok) throw new Error('Error fetching inventory');
 
@@ -224,36 +226,58 @@ export default function ManageInventory() {
 
     return (
         <ManageLayout title="Inventario" subtitle="Control de productos y stock">
-            {/* Toolbar */}
-            <div className="flex gap-4 mb-6">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
-                    <Input placeholder="Buscar producto..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 border-stone-200" />
+            {/* Access Denied Banner */}
+            {!hasAccess && (
+                <div className="flex flex-col items-center justify-center py-12 px-4 bg-stone-50 border border-stone-200 rounded-xl mb-6">
+                    <div className="bg-amber-100 p-4 rounded-full mb-4">
+                        <Package className="h-8 w-8 text-amber-600" />
+                    </div>
+                    <h3 className="text-xl font-bold text-stone-800 mb-2">Función No Disponible</h3>
+                    <p className="text-stone-600 text-center max-w-md mb-6">
+                        El módulo de inventario está disponible exclusivamente en los planes Premium y Enterprise.
+                    </p>
+                    <Button className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white border-0">
+                        Mejorar mi Plan
+                    </Button>
                 </div>
-                <Button onClick={() => { resetForm(); setShowModal(true); }} className="bg-emerald-600 hover:bg-emerald-700">
-                    <Plus className="h-4 w-4 mr-2" /> Nuevo Producto
-                </Button>
-            </div>
+            )}
+
+            {/* Toolbar - Only show if has access */}
+            {hasAccess && (
+                <div className="flex gap-4 mb-6">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+                        <Input placeholder="Buscar producto..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 border-stone-200" />
+                    </div>
+                    <Button onClick={() => { resetForm(); setShowModal(true); }} className="bg-emerald-600 hover:bg-emerald-700">
+                        <Plus className="h-4 w-4 mr-2" /> Nuevo Producto
+                    </Button>
+                </div>
+            )}
+
 
             {/* Stats */}
-            <div className="grid grid-cols-4 gap-4 mb-6">
-                <div className="p-4 rounded-xl bg-stone-100 text-stone-700">
-                    <p className="text-2xl font-bold">{products.length}</p>
-                    <p className="text-sm">Productos</p>
+            {hasAccess && (
+                <div className="grid grid-cols-4 gap-4 mb-6">
+                    <div className="p-4 rounded-xl bg-stone-100 text-stone-700">
+                        <p className="text-2xl font-bold">{products.length}</p>
+                        <p className="text-sm">Productos</p>
+                    </div>
+                    <div className={`p-4 rounded-xl ${lowStockProducts.length > 0 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                        <p className="text-2xl font-bold">{lowStockProducts.length}</p>
+                        <p className="text-sm">Stock Bajo</p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-blue-100 text-blue-700">
+                        <p className="text-2xl font-bold">${totalValue.toLocaleString()}</p>
+                        <p className="text-sm">Valor Inventario</p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-purple-100 text-purple-700">
+                        <p className="text-2xl font-bold">{movements.length}</p>
+                        <p className="text-sm">Movimientos</p>
+                    </div>
                 </div>
-                <div className={`p-4 rounded-xl ${lowStockProducts.length > 0 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                    <p className="text-2xl font-bold">{lowStockProducts.length}</p>
-                    <p className="text-sm">Stock Bajo</p>
-                </div>
-                <div className="p-4 rounded-xl bg-blue-100 text-blue-700">
-                    <p className="text-2xl font-bold">${totalValue.toLocaleString()}</p>
-                    <p className="text-sm">Valor Inventario</p>
-                </div>
-                <div className="p-4 rounded-xl bg-purple-100 text-purple-700">
-                    <p className="text-2xl font-bold">{movements.length}</p>
-                    <p className="text-sm">Movimientos</p>
-                </div>
-            </div>
+            )}
+
 
             {/* Low Stock Alert */}
             {lowStockProducts.length > 0 && (
@@ -272,54 +296,56 @@ export default function ManageInventory() {
             )}
 
             {/* Products Table */}
-            <Card className="border-stone-200">
-                <CardContent className="p-0">
-                    <table className="w-full">
-                        <thead className="bg-stone-50 border-b border-stone-200">
-                            <tr>
-                                <th className="text-left p-4 text-sm font-medium text-stone-600">Producto</th>
-                                <th className="text-left p-4 text-sm font-medium text-stone-600">SKU</th>
-                                <th className="text-left p-4 text-sm font-medium text-stone-600">Categoría</th>
-                                <th className="text-left p-4 text-sm font-medium text-stone-600">Stock</th>
-                                <th className="text-left p-4 text-sm font-medium text-stone-600">Costo Unit.</th>
-                                <th className="text-left p-4 text-sm font-medium text-stone-600">Valor</th>
-                                <th className="text-right p-4 text-sm font-medium text-stone-600">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredProducts.map(p => (
-                                <tr key={p.id} className={`border-b border-stone-100 ${p.currentStock <= p.minStock ? 'bg-red-50' : 'hover:bg-stone-50'}`}>
-                                    <td className="p-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-stone-100 rounded-lg flex items-center justify-center">
-                                                <Package className="h-5 w-5 text-stone-400" />
-                                            </div>
-                                            <span className="font-medium text-stone-800">{p.name}</span>
-                                        </div>
-                                    </td>
-                                    <td className="p-4 font-mono text-sm text-stone-500">{p.sku}</td>
-                                    <td className="p-4 text-sm text-stone-500">{p.category}</td>
-                                    <td className="p-4">
-                                        <span className={`font-medium ${p.currentStock <= p.minStock ? 'text-red-600' : 'text-emerald-600'}`}>
-                                            {p.currentStock} {p.unit}
-                                        </span>
-                                        <span className="text-xs text-stone-400 block">Min: {p.minStock}</span>
-                                    </td>
-                                    <td className="p-4 text-stone-600">${p.unitCost}</td>
-                                    <td className="p-4 font-medium text-stone-800">${(p.currentStock * p.unitCost).toLocaleString()}</td>
-                                    <td className="p-4 text-right">
-                                        <div className="flex gap-1 justify-end">
-                                            <button onClick={() => openMovement(p)} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg" title="Movimiento"><ArrowUp className="h-4 w-4" /></button>
-                                            <button onClick={() => openEdit(p)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="Editar"><Edit className="h-4 w-4" /></button>
-                                            <button onClick={() => handleDeleteProduct(p)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg" title="Eliminar"><Trash2 className="h-4 w-4" /></button>
-                                        </div>
-                                    </td>
+            {hasAccess && (
+                <Card className="border-stone-200">
+                    <CardContent className="p-0">
+                        <table className="w-full">
+                            <thead className="bg-stone-50 border-b border-stone-200">
+                                <tr>
+                                    <th className="text-left p-4 text-sm font-medium text-stone-600">Producto</th>
+                                    <th className="text-left p-4 text-sm font-medium text-stone-600">SKU</th>
+                                    <th className="text-left p-4 text-sm font-medium text-stone-600">Categoría</th>
+                                    <th className="text-left p-4 text-sm font-medium text-stone-600">Stock</th>
+                                    <th className="text-left p-4 text-sm font-medium text-stone-600">Costo Unit.</th>
+                                    <th className="text-left p-4 text-sm font-medium text-stone-600">Valor</th>
+                                    <th className="text-right p-4 text-sm font-medium text-stone-600">Acciones</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </CardContent>
-            </Card>
+                            </thead>
+                            <tbody>
+                                {filteredProducts.map(p => (
+                                    <tr key={p.id} className={`border-b border-stone-100 ${p.currentStock <= p.minStock ? 'bg-red-50' : 'hover:bg-stone-50'}`}>
+                                        <td className="p-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 bg-stone-100 rounded-lg flex items-center justify-center">
+                                                    <Package className="h-5 w-5 text-stone-400" />
+                                                </div>
+                                                <span className="font-medium text-stone-800">{p.name}</span>
+                                            </div>
+                                        </td>
+                                        <td className="p-4 font-mono text-sm text-stone-500">{p.sku}</td>
+                                        <td className="p-4 text-sm text-stone-500">{p.category}</td>
+                                        <td className="p-4">
+                                            <span className={`font-medium ${p.currentStock <= p.minStock ? 'text-red-600' : 'text-emerald-600'}`}>
+                                                {p.currentStock} {p.unit}
+                                            </span>
+                                            <span className="text-xs text-stone-400 block">Min: {p.minStock}</span>
+                                        </td>
+                                        <td className="p-4 text-stone-600">${p.unitCost}</td>
+                                        <td className="p-4 font-medium text-stone-800">${(p.currentStock * p.unitCost).toLocaleString()}</td>
+                                        <td className="p-4 text-right">
+                                            <div className="flex gap-1 justify-end">
+                                                <button onClick={() => openMovement(p)} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg" title="Movimiento"><ArrowUp className="h-4 w-4" /></button>
+                                                <button onClick={() => openEdit(p)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg" title="Editar"><Edit className="h-4 w-4" /></button>
+                                                <button onClick={() => handleDeleteProduct(p)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg" title="Eliminar"><Trash2 className="h-4 w-4" /></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Product Modal */}
             {showModal && (
