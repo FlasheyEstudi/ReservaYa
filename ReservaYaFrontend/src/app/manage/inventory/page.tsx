@@ -1,4 +1,5 @@
 'use client';
+import { getApiUrl } from '@/lib/api';
 
 import { useState, useEffect } from 'react';
 import { ManageLayout } from '@/components/manage/ManageLayout';
@@ -6,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Package, Search, Plus, Minus, AlertTriangle, Edit, Trash2, X, Save, ArrowUp, ArrowDown } from 'lucide-react';
+import { useToast } from '@/components/ui/toast-provider';
 
 interface Product {
     id: string;
@@ -33,6 +35,7 @@ const CATEGORIES = ['Carnes', 'Vegetales', 'Lácteos', 'Bebidas', 'Secos', 'Limp
 const UNITS = ['kg', 'g', 'lt', 'ml', 'unidad', 'caja', 'bolsa'];
 
 export default function ManageInventory() {
+    const { showSuccess, showError } = useToast();
     const [products, setProducts] = useState<Product[]>([]);
     const [movements, setMovements] = useState<StockMovement[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -54,8 +57,8 @@ export default function ManageInventory() {
         if (!token) return;
 
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-            const res = await fetch(`${API_URL}/restaurant/inventory`, {
+            const apiUrl = getApiUrl();
+            const res = await fetch(`${apiUrl}/restaurant/inventory`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -97,10 +100,10 @@ export default function ManageInventory() {
         if (!token) return;
 
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+            const apiUrl = getApiUrl();
 
             if (editingProduct) {
-                const res = await fetch(`${API_URL}/restaurant/inventory/${editingProduct.id}`, {
+                const res = await fetch(`${apiUrl}/restaurant/inventory/${editingProduct.id}`, {
                     method: 'PATCH',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -113,7 +116,7 @@ export default function ManageInventory() {
                     setProducts(prev => prev.map(p => p.id === editingProduct.id ? { ...p, ...formData, lastUpdated: new Date().toISOString().split('T')[0] } : p));
                 }
             } else {
-                const res = await fetch(`${API_URL}/restaurant/inventory`, {
+                const res = await fetch(`${apiUrl}/restaurant/inventory`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -141,8 +144,8 @@ export default function ManageInventory() {
         if (!token) return;
 
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-            const res = await fetch(`${API_URL}/restaurant/inventory/${product.id}`, {
+            const apiUrl = getApiUrl();
+            const res = await fetch(`${apiUrl}/restaurant/inventory/${product.id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -174,8 +177,8 @@ export default function ManageInventory() {
         if (!token) return;
 
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-            const res = await fetch(`${API_URL}/restaurant/inventory/${movementProduct.id}/movement`, {
+            const apiUrl = getApiUrl();
+            const res = await fetch(`${apiUrl}/restaurant/inventory/${movementProduct.id}/movement`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -186,7 +189,7 @@ export default function ManageInventory() {
 
             if (!res.ok) {
                 const data = await res.json();
-                alert(data.error || 'Error registering movement');
+                showError('Error', data.error || 'No se pudo registrar el movimiento');
                 return;
             }
 

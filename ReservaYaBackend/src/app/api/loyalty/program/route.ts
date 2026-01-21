@@ -38,7 +38,8 @@ export async function GET(req: NextRequest) {
         }
 
         const { searchParams } = new URL(req.url);
-        const restaurantId = searchParams.get('restaurantId') || decoded.restaurantId;
+        // Support both rid (employee token) and restaurantId (query param for users)
+        const restaurantId = searchParams.get('restaurantId') || decoded.rid;
 
         if (!restaurantId) {
             return NextResponse.json({ error: 'Restaurant ID required' }, { status: 400, headers: corsHeaders });
@@ -67,7 +68,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
     try {
         const decoded = getTokenPayload(req);
-        if (!decoded?.restaurantId) {
+        // Use rid from employee token
+        if (!decoded?.rid) {
             return NextResponse.json({ error: 'Unauthorized - restaurant access required' }, { status: 401, headers: corsHeaders });
         }
 
@@ -75,9 +77,9 @@ export async function POST(req: NextRequest) {
         const { visitsRequired, rewardTitle, rewardDescription, isActive } = body;
 
         const program = await db.loyaltyProgram.upsert({
-            where: { restaurantId: decoded.restaurantId },
+            where: { restaurantId: decoded.rid },
             create: {
-                restaurantId: decoded.restaurantId,
+                restaurantId: decoded.rid,
                 visitsRequired: visitsRequired || 10,
                 rewardTitle: rewardTitle || 'Postre gratis',
                 rewardDescription: rewardDescription,

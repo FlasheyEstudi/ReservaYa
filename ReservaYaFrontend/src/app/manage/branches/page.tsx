@@ -23,7 +23,7 @@ interface Organization {
     name: string;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+import { getApiUrl } from '@/lib/api';
 
 export default function BranchesPage() {
     const [branches, setBranches] = useState<Branch[]>([]);
@@ -46,7 +46,7 @@ export default function BranchesPage() {
         }
 
         try {
-            const res = await fetch(`${API_URL}/organization/branches`, {
+            const res = await fetch(`${getApiUrl()}/organization/branches`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -78,7 +78,7 @@ export default function BranchesPage() {
 
         setCreating(true);
         try {
-            const res = await fetch(`${API_URL}/organization/branches`, {
+            const res = await fetch(`${getApiUrl()}/organization/branches`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -112,7 +112,7 @@ export default function BranchesPage() {
         showToast('Cambiando de sucursal...');
 
         try {
-            const res = await fetch(`${API_URL}/organization/switch-branch`, {
+            const res = await fetch(`${getApiUrl()}/organization/switch-branch`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,

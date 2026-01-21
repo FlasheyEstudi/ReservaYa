@@ -1,4 +1,5 @@
 'use client';
+import { getApiUrl } from '@/lib/api';
 
 import { useState, useEffect, useRef } from 'react';
 import { ManageLayout } from '@/components/manage/ManageLayout';
@@ -100,8 +101,8 @@ export default function ManageInvoices() {
         if (!token) return;
 
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-            const res = await fetch(`${API_URL}/restaurant/settings`, {
+            const apiUrl = getApiUrl();
+            const res = await fetch(`${apiUrl}/restaurant/settings`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -144,8 +145,8 @@ export default function ManageInvoices() {
         if (!token) return;
 
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-            const res = await fetch(`${API_URL}/restaurant/invoices`, {
+            const apiUrl = getApiUrl();
+            const res = await fetch(`${apiUrl}/restaurant/invoices`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -214,8 +215,8 @@ export default function ManageInvoices() {
         }
 
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-            await fetch(`${API_URL}/restaurant/settings`, {
+            const apiUrl = getApiUrl();
+            await fetch(`${apiUrl}/restaurant/settings`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',

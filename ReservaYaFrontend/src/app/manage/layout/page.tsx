@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Circle, Square, RectangleHorizontal, Save, Trash2, X, AlertTriangle, Wrench } from 'lucide-react';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+import { useToast } from '@/components/ui/toast-provider';
+import { getApiUrl } from '@/lib/api';
 
 interface TableItem {
   id: string;
@@ -29,6 +29,7 @@ const tableTemplates = [
 ];
 
 export default function RestaurantLayout() {
+  const { showSuccess, showError } = useToast();
   const [tables, setTables] = useState<TableItem[]>([]);
   const [selectedTable, setSelectedTable] = useState<TableItem | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -46,7 +47,7 @@ export default function RestaurantLayout() {
     // Prioritize API fetch for cross-device sync
     if (token) {
       try {
-        const res = await fetch(`${API_URL}/restaurant/layout`, {
+        const res = await fetch(`${getApiUrl()}/restaurant/layout`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
@@ -166,7 +167,7 @@ export default function RestaurantLayout() {
 
     // Also try API
     try {
-      await fetch(`${API_URL}/restaurant/layout`, {
+      await fetch(`${getApiUrl()}/restaurant/layout`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ tables: tables.map(t => ({ id: t.id, tableNumber: t.number, capacity: t.capacity, posX: t.x, posY: t.y, type: t.type, width: t.width, height: t.height })) })
@@ -175,7 +176,7 @@ export default function RestaurantLayout() {
       console.log('API save failed, but localStorage saved');
     }
 
-    alert('Distribución guardada');
+    showSuccess('¡Guardado!', 'Distribución de mesas actualizada');
     setSaving(false);
   };
 

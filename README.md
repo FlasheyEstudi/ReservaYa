@@ -132,11 +132,12 @@ Accede a: `http://localhost:3001`
 
 ## 🚢 Pase a Producción (Despliegue)
 
-Para desplegar este sistema en un entorno real (VPS, AWS, DigitalOcean), consulta las guías técnicas especializadas que hemos generado:
+Para desplegar este sistema en un entorno real, consulta las guías técnicas especializadas:
 
-1.  🔒 **[Guía de Seguridad SSL (HTTPS)](./GUIA_DEPLOY_SSL.md)**: Configuración de Nginx y Certbot.
-2.  💳 **[Manual de Integración de Pagos](./MANUAL_PAGADITO.md)**: Cómo activar Pagadito con dinero real.
-3.  📝 **[Variables de Entorno](./ENV_TEMPLATE.md)**: Lista maestra de configuraciones para producción.
+1.  ☁️ **[Guía de Despliegue Cloud (Vercel/Railway)](./GUIA_DEPLOY_CLOUD.md)**: La forma más rápida de tenerlo online gratis.
+2.  🔒 **[Guía de Seguridad SSL (HTTPS)](./GUIA_DEPLOY_SSL.md)**: Si usas tu propio servidor VPS (Nginx).
+3.  💳 **[Manual de Integración de Pagos](./MANUAL_PAGADITO.md)**: Cómo activar Pagadito.
+4.  📝 **[Variables de Entorno](./ENV_TEMPLATE.md)**: Lista maestra de configuraciones.
 
 ---
 

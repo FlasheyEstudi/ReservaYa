@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CalendarDays, List, Clock, Users, CheckCircle, XCircle, AlertCircle, Search, ChevronLeft, ChevronRight, X, Edit, UserCheck, UserX } from 'lucide-react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+import { getApiUrl } from '@/lib/api';
 
 interface Reservation {
     id: string;
@@ -41,7 +41,7 @@ export default function ManageReservations() {
         }
 
         try {
-            const res = await fetch(`${API_URL}/reservations?date=${selectedDate}`, {
+            const res = await fetch(`${getApiUrl()}/reservations?date=${selectedDate}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {

@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Calendar, Users, Clock, MapPin, CheckCircle, X, AlertCircle, User, Phone, Search, LogOut, UserPlus, QrCode, Camera, List, CalendarDays, Filter } from 'lucide-react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+import { getApiUrl } from '@/lib/api';
 
 interface Reservation {
   id: string;
@@ -159,7 +159,7 @@ export default function HostWorkspace() {
 
     try {
       // Fetch Tables
-      const tablesRes = await fetch(`${API_URL}/restaurant/layout`, {
+      const tablesRes = await fetch(`${getApiUrl()}/restaurant/layout`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (tablesRes.ok) {
@@ -180,7 +180,7 @@ export default function HostWorkspace() {
 
       // Fetch Reservations for selected date
       const targetDate = date || selectedDate;
-      const reservationsRes = await fetch(`${API_URL}/reservations/today?date=${targetDate}`, {
+      const reservationsRes = await fetch(`${getApiUrl()}/reservations/today?date=${targetDate}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -224,8 +224,8 @@ export default function HostWorkspace() {
     setIsSearching(true);
     try {
       const url = searchAllDates
-        ? `${API_URL}/reservations/today?search=${encodeURIComponent(query)}&allDates=true`
-        : `${API_URL}/reservations/today?search=${encodeURIComponent(query)}&date=${selectedDate}`;
+        ? `${getApiUrl()}/reservations/today?search=${encodeURIComponent(query)}&allDates=true`
+        : `${getApiUrl()}/reservations/today?search=${encodeURIComponent(query)}&date=${selectedDate}`;
 
       const res = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -296,14 +296,14 @@ export default function HostWorkspace() {
         try {
           // Update table status
           if (reservation.tableId) {
-            await fetch(`${API_URL}/restaurant/tables/${reservation.tableId}/status`, {
+            await fetch(`${getApiUrl()}/restaurant/tables/${reservation.tableId}/status`, {
               method: 'PATCH',
               headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
               body: JSON.stringify({ status: 'occupied' })
             });
           }
           // Update reservation status via check-in endpoint
-          await fetch(`${API_URL}/reservations/${reservation.id}/check-in`, {
+          await fetch(`${getApiUrl()}/reservations/${reservation.id}/check-in`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
           });
@@ -342,13 +342,13 @@ export default function HostWorkspace() {
     if (token) {
       try {
         // Update table status
-        const tableRes = await fetch(`${API_URL}/restaurant/tables/${tableId}/status`, {
+        const tableRes = await fetch(`${getApiUrl()}/restaurant/tables/${tableId}/status`, {
           method: 'PATCH',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'occupied' })
         });
         // Update reservation status via check-in endpoint
-        const resRes = await fetch(`${API_URL}/reservations/${reservation.id}/check-in`, {
+        const resRes = await fetch(`${getApiUrl()}/reservations/${reservation.id}/check-in`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
         });
@@ -398,7 +398,7 @@ export default function HostWorkspace() {
     const token = localStorage.getItem('token');
     if (token) {
       try {
-        const res = await fetch(`${API_URL}/restaurant/tables/${walkInData.tableId}/status`, {
+        const res = await fetch(`${getApiUrl()}/restaurant/tables/${walkInData.tableId}/status`, {
           method: 'PATCH',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'occupied' })
@@ -436,7 +436,7 @@ export default function HostWorkspace() {
       // Call backend to update reservation status and get table info
       if (token) {
         try {
-          const response = await fetch(`${API_URL}/reservations/${reservation.id}/check-in`, {
+          const response = await fetch(`${getApiUrl()}/reservations/${reservation.id}/check-in`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -484,7 +484,7 @@ export default function HostWorkspace() {
       if (token) {
         try {
           // Try direct check-in with the code
-          const checkInResponse = await fetch(`${API_URL}/reservations/${reservationId}/check-in`, {
+          const checkInResponse = await fetch(`${getApiUrl()}/reservations/${reservationId}/check-in`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -510,7 +510,7 @@ export default function HostWorkspace() {
           }
 
           // Fallback: try lookup endpoint
-          const res = await fetch(`${API_URL}/reservations/lookup?code=${reservationId}`, {
+          const res = await fetch(`${getApiUrl()}/reservations/lookup?code=${reservationId}`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           if (res.ok) {

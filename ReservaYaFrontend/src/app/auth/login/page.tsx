@@ -6,7 +6,7 @@ import { Eye, EyeOff, Mail, Lock, Utensils, ArrowLeft, Building2, KeyRound, Shie
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+import { getApiUrl } from '@/lib/api';
 
 export default function Login() {
   const router = useRouter();
@@ -37,7 +37,7 @@ export default function Login() {
     }
 
     try {
-      const response = await fetch(`${API_URL}/auth/login`, {
+      const response = await fetch(`${getApiUrl()}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(loginData)
@@ -71,7 +71,7 @@ export default function Login() {
     setError('');
 
     try {
-      const response = await fetch(`${API_URL}/auth/employee/login`, {
+      const response = await fetch(`${getApiUrl()}/auth/employee/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

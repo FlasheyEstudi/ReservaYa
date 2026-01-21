@@ -1,15 +1,18 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { Eye, EyeOff, User, Mail, Phone, Lock, Utensils, ArrowLeft, Building2, CheckCircle, Clock, Star, Gift, Users, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+import { getApiUrl } from '@/lib/api';
 
-export default function Register() {
+import { Suspense } from 'react';
+
+function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showPin, setShowPin] = useState(false);
@@ -17,6 +20,12 @@ export default function Register() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isRestaurantMode, setIsRestaurantMode] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('mode') === 'business') {
+      setIsRestaurantMode(true);
+    }
+  }, [searchParams]);
 
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', password: '', confirmPassword: '' });
   const [restaurantData, setRestaurantData] = useState({ name: '', taxId: '', address: '', ownerEmail: '', ownerName: '', ownerPassword: '', ownerPasswordConfirm: '' });
@@ -33,7 +42,7 @@ export default function Register() {
     }
 
     try {
-      const response = await fetch(`${API_URL}/auth/register`, {
+      const response = await fetch(`${getApiUrl()}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -77,7 +86,7 @@ export default function Register() {
     }
 
     try {
-      const response = await fetch(`${API_URL}/auth/register-business`, {
+      const response = await fetch(`${getApiUrl()}/auth/register-business`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -359,10 +368,20 @@ export default function Register() {
 
           <p className="text-center text-zinc-500 text-sm mt-6">
             ¿Ya tienes código?{' '}
+
+
             <button onClick={() => router.push('/auth/login')} className="text-emerald-400 hover:text-emerald-300 font-medium">Inicia sesión como empleado</button>
           </p>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function Register() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center text-white">Cargando...</div>}>
+      <RegisterForm />
+    </Suspense>
   );
 }

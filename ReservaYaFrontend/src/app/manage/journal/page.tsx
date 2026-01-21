@@ -1,4 +1,5 @@
 'use client';
+import { getApiUrl } from '@/lib/api';
 
 import { useState, useEffect } from 'react';
 import { ManageLayout } from '@/components/manage/ManageLayout';
@@ -35,8 +36,8 @@ export default function ManageJournal() {
         if (!token) return;
 
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-            const res = await fetch(`${API_URL}/restaurant/journal?limit=100`, {
+            const apiUrl = getApiUrl();
+            const res = await fetch(`${apiUrl}/restaurant/journal?limit=100`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 

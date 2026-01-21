@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Wine, Clock, CheckCircle, AlertCircle, Timer, Volume2, VolumeX, LogOut, Flame, GlassWater } from 'lucide-react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+import { getApiUrl } from '@/lib/api';
 
 interface OrderItem {
     id: string;
@@ -50,7 +50,7 @@ export default function BarWorkspace() {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-            const res = await fetch(`${API_URL}/orders?status=active&destination=bar`, {
+            const res = await fetch(`${getApiUrl()}/orders?status=active&destination=bar`, {
                 headers: { 'Authorization': `Bearer ${token}` },
                 signal: controller.signal
             });
@@ -58,11 +58,25 @@ export default function BarWorkspace() {
 
             if (res.ok) {
                 const data = await res.json();
-                const newTickets = data.orders || [];
-                if (newTickets.length > tickets.length && soundEnabled) {
+                // Map API response to Ticket interface
+                const mappedTickets: Ticket[] = (data.orders || []).map((order: any) => ({
+                    id: order.id,
+                    tableNumber: order.table_number || `Mesa ${order.table_id?.slice(-4) || '?'}`,
+                    orderTime: order.created_at || new Date().toISOString(),
+                    status: order.status === 'open' ? 'pending' : order.status,
+                    priority: 'normal',
+                    items: (order.items || []).map((item: any) => ({
+                        id: item.id,
+                        name: item.menu_item_name || item.name || 'Bebida',
+                        quantity: item.quantity || 1,
+                        notes: item.notes || '',
+                        status: item.status || 'pending'
+                    }))
+                }));
+                if (mappedTickets.length > tickets.length && soundEnabled) {
                     playNotification();
                 }
-                setTickets(newTickets);
+                setTickets(mappedTickets);
             } else {
                 console.error('Failed to fetch bar orders');
             }
@@ -89,26 +103,65 @@ export default function BarWorkspace() {
         return 'text-red-400';
     };
 
-    const handleItemClick = (ticketId: string, itemId: string) => {
-        setTickets(prev => prev.map(ticket => {
-            if (ticket.id === ticketId) {
-                const updatedItems = ticket.items.map(item => {
-                    if (item.id === itemId) {
-                        const newStatus = item.status === 'pending' ? 'preparing' : 'ready';
-                        return { ...item, status: newStatus as any };
-                    }
-                    return item;
-                });
+    const handleItemClick = async (ticketId: string, itemId: string) => {
+        const ticket = tickets.find(t => t.id === ticketId);
+        const item = ticket?.items.find(i => i.id === itemId);
+        if (!item) return;
+
+        // Bar uses 'preparing' instead of 'cooking', but backend uses 'cooking'
+        const newStatus = item.status === 'pending' ? 'cooking' : 'ready';
+        const displayStatus = item.status === 'pending' ? 'preparing' : 'ready';
+
+        // Optimistic update
+        setTickets(prev => prev.map(t => {
+            if (t.id === ticketId) {
+                const updatedItems = t.items.map(i => i.id === itemId ? { ...i, status: displayStatus as any } : i);
                 const allReady = updatedItems.every(i => i.status === 'ready');
-                return { ...ticket, items: updatedItems, status: allReady ? 'ready' : 'preparing' as any };
+                return { ...t, items: updatedItems, status: allReady ? 'ready' : 'preparing' as any };
             }
-            return ticket;
+            return t;
         }));
+
+        // Persist to backend
+        const token = localStorage.getItem('token');
+        if (token) {
+            try {
+                await fetch(`${getApiUrl()}/orders/items/${itemId}/status`, {
+                    method: 'PATCH',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+            } catch (err) {
+                console.error('Error updating item status:', err);
+                fetchOrders();
+            }
+        }
     };
 
     const handleTicketReady = async (ticketId: string) => {
+        const ticket = tickets.find(t => t.id === ticketId);
+        if (!ticket) return;
+
+        // Optimistic update
         setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: 'ready' as any } : t));
-        console.log('📡 Socket emit: bar_order_ready', { ticketId });
+
+        // Mark all items as ready in backend
+        const token = localStorage.getItem('token');
+        if (token) {
+            try {
+                await Promise.all(ticket.items.map(item =>
+                    fetch(`${getApiUrl()}/orders/items/${item.id}/status`, {
+                        method: 'PATCH',
+                        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: 'ready' })
+                    })
+                ));
+                console.log('📡 All items marked ready for ticket:', ticketId);
+            } catch (err) {
+                console.error('Error marking items ready:', err);
+                fetchOrders();
+            }
+        }
     };
 
     const handleArchiveTicket = (ticketId: string) => {

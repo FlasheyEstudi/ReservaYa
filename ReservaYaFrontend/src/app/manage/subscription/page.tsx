@@ -12,8 +12,8 @@ import {
     Users, Table2, CalendarCheck, Package, Megaphone, BarChart3,
     Clock, Loader2, CheckCircle, AlertCircle, ExternalLink
 } from 'lucide-react';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+import { useToast } from '@/components/ui/toast-provider';
+import { getApiUrl } from '@/lib/api';
 
 interface Plan {
     id: string;
@@ -59,6 +59,7 @@ const PLAN_COLORS: Record<string, string> = {
 
 function SubscriptionContent() {
     const searchParams = useSearchParams();
+    const { showSuccess, showError } = useToast();
     const [plans, setPlans] = useState<Plan[]>([]);
     const [usage, setUsage] = useState<UsageStats | null>(null);
     const [loading, setLoading] = useState(true);
@@ -75,11 +76,11 @@ function SubscriptionContent() {
     const fetchData = async () => {
         const token = localStorage.getItem('token');
         try {
-            const plansRes = await fetch(`${API_URL}/billing/plans`);
+            const plansRes = await fetch(`${getApiUrl()}/billing/plans`);
             if (plansRes.ok) { const data = await plansRes.json(); setPlans(data.plans || []); }
 
             if (token) {
-                const usageRes = await fetch(`${API_URL}/billing/subscription`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const usageRes = await fetch(`${getApiUrl()}/billing/subscription`, { headers: { 'Authorization': `Bearer ${token}` } });
                 if (usageRes.ok) { const data = await usageRes.json(); setUsage(data); }
             }
         } catch (err) { console.error('Error:', err); }
@@ -93,7 +94,7 @@ function SubscriptionContent() {
 
         setProcessing(true);
         try {
-            const res = await fetch(`${API_URL}/billing/checkout`, {
+            const res = await fetch(`${getApiUrl()}/billing/checkout`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ planId: checkoutPlan.id, billingPeriod })
@@ -105,12 +106,12 @@ function SubscriptionContent() {
                 // Redirect to payment page (Pagadito or simulated)
                 window.location.href = data.redirectUrl;
             } else {
-                alert(data.error || 'Error iniciando pago');
+                showError('Error de pago', data.error || 'No se pudo iniciar el pago');
                 setProcessing(false);
             }
         } catch (err) {
             console.error(err);
-            alert('Error de conexión');
+            showError('Error de conexión', 'No se pudo conectar con el servidor');
             setProcessing(false);
         }
     };
@@ -120,14 +121,14 @@ function SubscriptionContent() {
         if (!token) return;
 
         try {
-            const res = await fetch(`${API_URL}/billing/subscription`, {
+            const res = await fetch(`${getApiUrl()}/billing/subscription`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ planName })
             });
             if (res.ok) {
                 const data = await res.json();
-                alert(data.message || 'Trial activado');
+                showSuccess('¡Trial activado!', data.message || 'Disfruta tu período de prueba');
                 fetchData();
             }
         } catch (err) { console.error(err); }
@@ -137,7 +138,7 @@ function SubscriptionContent() {
         if (!confirm('¿Cancelar suscripción? Volverás al plan gratuito.')) return;
         const token = localStorage.getItem('token');
         try {
-            await fetch(`${API_URL}/billing/subscription`, {
+            await fetch(`${getApiUrl()}/billing/subscription`, {
                 method: 'PATCH',
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'cancel' })

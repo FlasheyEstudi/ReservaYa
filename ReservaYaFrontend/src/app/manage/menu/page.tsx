@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Search, Edit, Trash2, ToggleLeft, ToggleRight, UtensilsCrossed, Coffee, X, Save } from 'lucide-react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+import { getApiUrl } from '@/lib/api';
 
 interface MenuItem {
     id: string;
@@ -44,14 +44,25 @@ export default function ManageMenu() {
         if (!token) return;
 
         try {
-            const res = await fetch(`${API_URL}/menu`, {
+            const res = await fetch(`${getApiUrl()}/menu`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
                 const data = await res.json();
-                setMenuItems(data.items || []);
+                // API returns menu_items with snake_case properties
+                const rawItems = data.menu_items || data.items || [];
+                const mappedItems = rawItems.map((item: any) => ({
+                    id: item.id,
+                    name: item.name,
+                    description: item.description,
+                    price: parseFloat(item.price) || 0,
+                    category: item.category?.name || item.categoryName || item.category || 'Sin categoría',
+                    station: item.station || 'kitchen',
+                    isAvailable: item.is_available ?? item.isAvailable ?? true
+                }));
+                setMenuItems(mappedItems);
                 // Extract unique categories
-                const cats = [...new Set((data.items || []).map((i: MenuItem) => i.category))];
+                const cats = [...new Set(mappedItems.map((i: MenuItem) => i.category))];
                 setCategories(cats.map((c, i) => ({ id: c as string, name: c as string, sortOrder: i })));
             }
         } catch (err) {
@@ -62,9 +73,34 @@ export default function ManageMenu() {
     };
 
     const toggleAvailability = async (item: MenuItem) => {
+        const newAvailability = !item.isAvailable;
         // Optimistic update
-        setMenuItems(prev => prev.map(i => i.id === item.id ? { ...i, isAvailable: !i.isAvailable } : i));
-        // TODO: API call to update availability
+        setMenuItems(prev => prev.map(i => i.id === item.id ? { ...i, isAvailable: newAvailability } : i));
+
+        // Persist to backend
+        const token = localStorage.getItem('token');
+        if (token) {
+            try {
+                const res = await fetch(`${getApiUrl()}/menu/${item.id}/availability`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ is_available: newAvailability })
+                });
+
+                if (!res.ok) {
+                    // Revert on failure
+                    setMenuItems(prev => prev.map(i => i.id === item.id ? { ...i, isAvailable: !newAvailability } : i));
+                    console.error('Failed to update availability');
+                }
+            } catch (err) {
+                // Revert on error
+                setMenuItems(prev => prev.map(i => i.id === item.id ? { ...i, isAvailable: !newAvailability } : i));
+                console.error('Error updating availability:', err);
+            }
+        }
     };
 
     const handleSave = () => {

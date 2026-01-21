@@ -1,4 +1,5 @@
 'use client';
+import { getApiUrl } from '@/lib/api';
 
 import { useState, useEffect } from 'react';
 import { ManageLayout } from '@/components/manage/ManageLayout';
@@ -39,8 +40,8 @@ export default function ManageCustomers() {
         }
 
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-            const res = await fetch(`${API_URL}/restaurant/customers`, {
+            const apiUrl = getApiUrl();
+            const res = await fetch(`${apiUrl}/restaurant/customers`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -60,8 +61,8 @@ export default function ManageCustomers() {
         if (!token) return;
 
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-            const res = await fetch(`${API_URL}/restaurant/customers?id=${customer.id}`, {
+            const apiUrl = getApiUrl();
+            const res = await fetch(`${apiUrl}/restaurant/customers?id=${customer.id}`, {
                 method: 'PATCH',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -86,8 +87,8 @@ export default function ManageCustomers() {
         if (!token) return;
 
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-            const res = await fetch(`${API_URL}/restaurant/customers?id=${customer.id}`, {
+            const apiUrl = getApiUrl();
+            const res = await fetch(`${apiUrl}/restaurant/customers?id=${customer.id}`, {
                 method: 'PATCH',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -111,8 +112,8 @@ export default function ManageCustomers() {
         if (!token) return;
 
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-            const res = await fetch(`${API_URL}/restaurant/customers?id=${selectedCustomer.id}`, {
+            const apiUrl = getApiUrl();
+            const res = await fetch(`${apiUrl}/restaurant/customers?id=${selectedCustomer.id}`, {
                 method: 'PATCH',
                 headers: {
                     'Authorization': `Bearer ${token}`,

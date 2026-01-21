@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
         if (!emailRegex.test(email)) {
             return NextResponse.json(
                 { error: 'Invalid email format' },
-                { status: 400, headers: corsHeaders }
+                { status: 400, headers: corsHeaders() }
             );
         }
 

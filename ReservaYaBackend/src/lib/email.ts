@@ -47,7 +47,7 @@ export async function sendEmail({ to, subject, text, html }: EmailOptions): Prom
         }
 
         const data = await res.json();
-        console.log(`[Email] Enviado exitosamente vía Resend. ID: ${data.id}`);
+
         return true;
 
     } catch (error) {

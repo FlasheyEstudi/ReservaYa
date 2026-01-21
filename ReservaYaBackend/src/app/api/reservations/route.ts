@@ -1,6 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { CreateReservationSchema } from '@/lib/validation';
+import jwt from 'jsonwebtoken';
+import { getJwtSecret } from '@/lib/auth';
+
+const JWT_SECRET = getJwtSecret();
+
+// Helper to extract user ID from token
+function getUserIdFromToken(req: NextRequest): string | null {
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return null;
+  }
+  try {
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, JWT_SECRET) as { uid: string };
+    return decoded.uid;
+  } catch {
+    return null;
+  }
+}
 
 // Retry helper for serializable transactions (handles P2034 serialization failures)
 async function withRetry<T>(
@@ -27,11 +46,17 @@ async function withRetry<T>(
 // POST /api/reservations - Create new reservation
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    if (process.env.NODE_ENV === 'development') {
-      console.log('RESERVATION REQUEST BODY:', JSON.stringify(body, null, 2));
+    // Get user_id from token (required)
+    const tokenUserId = getUserIdFromToken(request);
+    if (!tokenUserId) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
-    const { restaurant_id, reservation_time, party_size, user_id, table_id, notes } = CreateReservationSchema.parse(body);
+
+    const body = await request.json();
+    const { restaurant_id, reservation_time, party_size, table_id, notes } = CreateReservationSchema.parse(body);
+
+    // Use the authenticated user's ID
+    const user_id = tokenUserId;
 
 
     // Use serializable transaction with retry logic for concurrent requests
@@ -145,21 +170,21 @@ export async function POST(request: NextRequest) {
     }));
 
     // Send confirmation email
+    // Send confirmation email
     const { sendEmail } = await import('@/lib/email');
-    if (result.user?.email) { // Assuming we can get user email, but result.user is not included in the transaction result by default unless select is updated
-      // However, we have user_id. We might need to fetch user, or just trust the auth. 
-      // For now, let's skip user details if not available or assume we need to join it.
-      // The transaction above includes restaurant and table.
-      // Let's modify the transaction include to fetch user email if possible, or fetch it separately.
-      // Actually, we can fetch it after.
-      const user = await db.user.findUnique({ where: { id: user_id }, select: { email: true, fullName: true } });
-      if (user && user.email) {
-        await sendEmail({
-          to: user.email,
-          subject: 'Confirmación de Reserva - ReservaYa',
-          text: `Hola ${user.fullName}, tu reserva en ${result.restaurant?.name} para ${party_size} personas el ${new Date(reservation_time).toLocaleString()} ha sido confirmada. Código de mesa: ${result.table?.tableNumber || 'N/A'}.`
-        });
-      }
+
+    // Fetch user details for email
+    const user = await db.user.findUnique({
+      where: { id: user_id },
+      select: { email: true, fullName: true }
+    });
+
+    if (user && user.email) {
+      await sendEmail({
+        to: user.email,
+        subject: 'Confirmación de Reserva - ReservaYa',
+        text: `Hola ${user.fullName}, tu reserva en ${result.restaurant?.name} para ${party_size} personas el ${new Date(reservation_time).toLocaleString()} ha sido confirmada. Código de mesa: ${result.table?.tableNumber || 'N/A'}.`
+      });
     }
 
     return NextResponse.json({
@@ -188,32 +213,10 @@ export async function POST(request: NextRequest) {
   }
 }
 
-import jwt from 'jsonwebtoken';
-
-import { getJwtSecret } from '@/lib/auth';
-
-const JWT_SECRET = getJwtSecret();
-
-// Helper to get user from token
-async function getUserFromToken(req: NextRequest) {
-  const authHeader = req.headers.get('authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return null;
-  }
-
-  try {
-    const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, JWT_SECRET) as { uid: string };
-    return decoded.uid;
-  } catch {
-    return null;
-  }
-}
-
 // GET /api/reservations - Get reservations (filtered by authenticated user)
 export async function GET(request: NextRequest) {
   try {
-    const userId = await getUserFromToken(request);
+    const userId = getUserIdFromToken(request);
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

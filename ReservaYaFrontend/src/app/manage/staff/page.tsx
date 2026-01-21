@@ -6,8 +6,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Search, Eye, EyeOff, Copy, Trash2, X, Save, UserPlus, ToggleLeft, ToggleRight } from 'lucide-react';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+import { useToast } from '@/components/ui/toast-provider';
+import { getApiUrl } from '@/lib/api';
 
 interface Employee {
   id: string;
@@ -25,6 +25,7 @@ const ROLES = [
 ];
 
 export default function ManageStaff() {
+  const { showSuccess, showError } = useToast();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -46,7 +47,7 @@ export default function ManageStaff() {
     }
 
     try {
-      const res = await fetch(`${API_URL}/restaurant/staff`, {
+      const res = await fetch(`${getApiUrl()}/restaurant/staff`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -72,7 +73,7 @@ export default function ManageStaff() {
     const pin = generatePin();
 
     try {
-      const res = await fetch(`${API_URL}/restaurant/staff`, {
+      const res = await fetch(`${getApiUrl()}/restaurant/staff`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -93,7 +94,7 @@ export default function ManageStaff() {
         setFormData({ fullName: '', email: '', role: 'waiter' });
       } else {
         const data = await res.json();
-        alert(data.message || data.error || 'Error creating employee');
+        showError('Error', data.message || data.error || 'No se pudo crear el empleado');
       }
     } catch (error) {
       console.error('Error creating employee:', error);
@@ -105,7 +106,7 @@ export default function ManageStaff() {
     if (!token) return;
 
     try {
-      const res = await fetch(`${API_URL}/restaurant/staff/${emp.id}`, {
+      const res = await fetch(`${getApiUrl()}/restaurant/staff/${emp.id}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -129,7 +130,7 @@ export default function ManageStaff() {
     if (!token) return;
 
     try {
-      const res = await fetch(`${API_URL}/restaurant/staff/${emp.id}`, {
+      const res = await fetch(`${getApiUrl()}/restaurant/staff/${emp.id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -144,7 +145,7 @@ export default function ManageStaff() {
 
   const copyPin = () => {
     navigator.clipboard.writeText(generatedPin);
-    alert('PIN copiado');
+    showSuccess('PIN copiado', 'El PIN ha sido copiado al portapapeles');
   };
 
   const getRoleBadge = (role: string) => {

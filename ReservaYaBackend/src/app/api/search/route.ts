@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { SearchRestaurantsSchema } from '@/lib/validation';
+import { Prisma } from '@prisma/client';
 
 // Extended restaurant type for search results
 interface RestaurantWithExtras {
@@ -21,32 +22,52 @@ interface RestaurantWithExtras {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const skip = (page - 1) * limit;
+
     const queryParams = {
       city: searchParams.get('city'),
       date: searchParams.get('date'),
-      party: searchParams.get('party') ? parseInt(searchParams.get('party')!) : undefined
+      party: searchParams.get('party') ? parseInt(searchParams.get('party')!) : undefined,
+      search: searchParams.get('search'), // Text search
+      category: searchParams.get('category')
     };
-
-    const { city, date, party } = SearchRestaurantsSchema.parse(queryParams);
 
     // Build base where clause
-    const whereClause: any = {
-      status: 'active' // Only show active restaurants
+    const whereClause: Prisma.RestaurantWhereInput = {
+      status: 'active'
     };
 
-    // Add city filter if provided
-    if (city) {
-      // Note: In a real implementation, you'd have a city field in the restaurant table
-      // For now, we'll search by name (this is a simplified implementation)
-      whereClause.name = {
-        contains: city,
-        mode: 'insensitive'
-      };
+    // Text search (name or address)
+    if (queryParams.search) {
+      whereClause.OR = [
+        { name: { contains: queryParams.search, mode: 'insensitive' } },
+        { description: { contains: queryParams.search, mode: 'insensitive' } },
+        { category: { contains: queryParams.search, mode: 'insensitive' } }
+      ];
     }
 
-    // Get all active restaurants with reviews and menu items
+    // Category filter
+    if (queryParams.category && queryParams.category !== 'all') {
+      whereClause.category = { contains: queryParams.category, mode: 'insensitive' };
+    }
+
+    // City filter
+    if (queryParams.city) {
+      // Assuming 'address' contains city or future city field
+      // For now using name match as placeholder from original code, but address is better
+      whereClause.address = { contains: queryParams.city, mode: 'insensitive' };
+    }
+
+    // Get total count for pagination
+    const totalCount = await db.restaurant.count({ where: whereClause });
+
+    // Get paginated restaurants
     const restaurants = await db.restaurant.findMany({
       where: whereClause,
+      skip: skip,
+      take: limit,
       include: {
         tables: {
           select: {
@@ -79,28 +100,41 @@ export async function GET(request: NextRequest) {
             reviews: true
           }
         }
+      },
+      orderBy: {
+        // Boost promoted/verified or just newest?
+        // Let's sort by popularity (reviews count) or newness
+        reviews: { _count: 'desc' }
       }
     });
 
-
-    // Get likes count separately
+    // Get likes count separately (only for fetched IDs)
+    const restaurantIds = restaurants.map(r => r.id);
     const likeCounts = await db.like.groupBy({
       by: ['restaurantId'],
+      where: { restaurantId: { in: restaurantIds } },
       _count: { id: true }
     });
     const likeCountMap = new Map(likeCounts.map(l => [l.restaurantId, l._count.id]));
 
-    // Process restaurants with extended info
-    let availableRestaurants: RestaurantWithExtras[] = [];
+    // Availability Check Logic (Applied to current page only)
+    type RestaurantWithRelations = typeof restaurants[0];
 
-    if (date && party) {
-      const searchDateTime = new Date(date);
-      const timeWindowStart = new Date(searchDateTime.getTime() - (1.5 * 60 * 60 * 1000)); // 1.5 hours before
-      const timeWindowEnd = new Date(searchDateTime.getTime() + (1.5 * 60 * 60 * 1000)); // 1.5 hours after
+    interface ProcessedRestaurant extends RestaurantWithRelations {
+      available_capacity: number;
+      is_available: boolean;
+      like_count: number;
+    }
 
-      // OPTIMIZATION: Batch query for all reservations at once (Fix N+1)
-      const restaurantIds = restaurants.map(r => r.id);
-      const allReservations = await db.reservation.findMany({
+    let processedRestaurants: ProcessedRestaurant[] = [];
+
+    if (queryParams.date && queryParams.party) {
+      const searchDateTime = new Date(queryParams.date);
+      const timeWindowStart = new Date(searchDateTime.getTime() - (1.5 * 60 * 60 * 1000));
+      const timeWindowEnd = new Date(searchDateTime.getTime() + (1.5 * 60 * 60 * 1000));
+
+      // Batch fetch reservations for this page
+      const pageReservations = await db.reservation.findMany({
         where: {
           restaurantId: { in: restaurantIds },
           reservationTime: {
@@ -111,135 +145,90 @@ export async function GET(request: NextRequest) {
         }
       });
 
-      // OPTIMIZATION: Batch query for ratings using aggregate
-      const ratingStats = await db.review.groupBy({
-        by: ['restaurantId'],
-        where: { restaurantId: { in: restaurantIds } },
-        _avg: { rating: true },
-        _count: { rating: true }
-      });
-      const ratingMap = new Map(ratingStats.map(r => [r.restaurantId, { avg: r._avg.rating || 0, count: r._count.rating }]));
-
       // Create reservation lookup map
-      const reservationsByRestaurant = new Map<string, typeof allReservations>();
-      allReservations.forEach(r => {
+      const reservationsByRestaurant = new Map<string, typeof pageReservations>();
+      pageReservations.forEach(r => {
         if (!reservationsByRestaurant.has(r.restaurantId)) {
           reservationsByRestaurant.set(r.restaurantId, []);
         }
         reservationsByRestaurant.get(r.restaurantId)!.push(r);
       });
 
-      for (const restaurant of restaurants) {
-        // Calculate total restaurant capacity
-        const totalCapacity = restaurant.tables.reduce((sum, table) => sum + table.capacity, 0);
-
-        // Use pre-fetched reservations (O(1) lookup instead of query)
+      processedRestaurants = restaurants.map(restaurant => {
+        const totalCapacity = restaurant.tables.reduce((sum, t) => sum + t.capacity, 0);
         const existingReservations = reservationsByRestaurant.get(restaurant.id) || [];
-
-        // Calculate occupied seats
-        const occupiedSeats = existingReservations.reduce((sum, reservation) => sum + reservation.partySize, 0);
-
-        // Check if restaurant has availability
+        const occupiedSeats = existingReservations.reduce((sum, r) => sum + r.partySize, 0);
         const availableCapacity = totalCapacity - occupiedSeats;
 
-        if (availableCapacity >= party) {
-          // Use pre-fetched ratings (O(1) lookup instead of query)
-          const ratingInfo = ratingMap.get(restaurant.id) || { avg: 0, count: 0 };
-
-          availableRestaurants.push({
-            id: restaurant.id,
-            name: restaurant.name,
-            businessCode: restaurant.businessCode,
-            address: restaurant.address,
-            status: restaurant.status,
-            tables: restaurant.tables,
-            _count: { reviews: restaurant._count.reviews, likes: likeCountMap.get(restaurant.id) || 0 },
-            available_capacity: availableCapacity,
-            total_capacity: totalCapacity,
-            average_rating: ratingInfo.avg,
-            review_count: ratingInfo.count
-          });
-        }
-      }
-    } else {
-      // OPTIMIZATION: Batch query for ratings when no date/party filter
-      const restaurantIds = restaurants.map(r => r.id);
-      const ratingStats = await db.review.groupBy({
-        by: ['restaurantId'],
-        where: { restaurantId: { in: restaurantIds } },
-        _avg: { rating: true },
-        _count: { rating: true }
-      });
-      const ratingMap = new Map(ratingStats.map(r => [r.restaurantId, { avg: r._avg.rating || 0, count: r._count.rating }]));
-
-      // Process all restaurants without N+1 queries
-      availableRestaurants = restaurants.map((restaurant) => {
-        const ratingInfo = ratingMap.get(restaurant.id) || { avg: 0, count: 0 };
-        const totalCapacity = restaurant.tables.reduce((sum, table) => sum + table.capacity, 0);
+        const isAvailable = availableCapacity >= queryParams.party!;
 
         return {
-          id: restaurant.id,
-          name: restaurant.name,
-          businessCode: restaurant.businessCode,
-          address: restaurant.address,
-          status: restaurant.status,
-          tables: restaurant.tables,
-          _count: { reviews: restaurant._count.reviews, likes: likeCountMap.get(restaurant.id) || 0 },
-          available_capacity: totalCapacity,
-          total_capacity: totalCapacity,
-          average_rating: ratingInfo.avg,
-          review_count: ratingInfo.count
+          ...restaurant,
+          available_capacity: availableCapacity,
+          is_available: isAvailable, // Frontend can gray out if false
+          like_count: likeCountMap.get(restaurant.id) || 0
         };
       });
+    } else {
+      // No date filter - all considered "open" based on generic status
+      processedRestaurants = restaurants.map(r => ({
+        ...r,
+        available_capacity: r.tables.reduce((s, t) => s + t.capacity, 0),
+        is_available: true,
+        like_count: likeCountMap.get(r.id) || 0
+      }));
     }
 
+    // Transform for response
+    const formattedRestaurants = processedRestaurants.map(restaurant => {
+      const avgRating = restaurant.reviews.length > 0
+        ? restaurant.reviews.reduce((sum, r) => sum + r.rating, 0) / restaurant.reviews.length
+        : 0; // Or better, use stored aggregate in DB if available, but calculating for page is cheap
+
+      return {
+        id: restaurant.id,
+        name: restaurant.name,
+        business_code: restaurant.businessCode,
+        category: restaurant.category || 'General',
+        description: restaurant.description || '',
+        address: restaurant.address,
+        latitude: restaurant.latitude ? Number(restaurant.latitude) : null,
+        longitude: restaurant.longitude ? Number(restaurant.longitude) : null,
+        image: restaurant.image || null,
+        status: restaurant.status,
+        // Availability info
+        available_capacity: restaurant.available_capacity,
+        is_available: restaurant.is_available,
+
+        total_capacity: restaurant.tables.reduce((s, t) => s + t.capacity, 0),
+        average_rating: avgRating,
+        review_count: restaurant._count.reviews,
+        likes_count: restaurant.like_count,
+        table_count: restaurant.tables.length,
+        reviews: restaurant.reviews.map(r => ({
+          id: r.id,
+          rating: r.rating,
+          comment: r.comment,
+          user_name: r.user?.fullName || 'Usuario',
+          date: r.createdAt.toISOString().split('T')[0]
+        })),
+        featured_menu: restaurant.menuItems?.map(m => ({
+          id: m.id,
+          name: m.name,
+          price: m.price,
+          category: m.category,
+          image: m.image
+        })) || []
+      };
+    });
+
     return NextResponse.json({
-      restaurants: restaurants.map(restaurant => {
-        const totalCapacity = restaurant.tables.reduce((sum, table) => sum + table.capacity, 0);
-        const avgRating = restaurant.reviews.length > 0
-          ? restaurant.reviews.reduce((sum, r) => sum + r.rating, 0) / restaurant.reviews.length
-          : 0;
-
-        return {
-          id: restaurant.id,
-          name: restaurant.name,
-          business_code: restaurant.businessCode,
-          category: (restaurant as any).category || 'General',
-          description: (restaurant as any).description || '',
-          address: restaurant.address,
-          latitude: (restaurant as any).latitude ? Number((restaurant as any).latitude) : null,
-          longitude: (restaurant as any).longitude ? Number((restaurant as any).longitude) : null,
-          image: (restaurant as any).image || null,
-          status: restaurant.status,
-          available_capacity: totalCapacity,
-          total_capacity: totalCapacity,
-          average_rating: avgRating,
-          review_count: restaurant._count.reviews,
-          likes_count: likeCountMap.get(restaurant.id) || 0,
-          table_count: restaurant.tables.length,
-          // Recent reviews for preview
-          reviews: restaurant.reviews.map(r => ({
-            id: r.id,
-            rating: r.rating,
-            comment: r.comment,
-            user_name: (r.user as any)?.fullName || 'Usuario',
-            date: r.createdAt.toISOString().split('T')[0]
-          })),
-          // Featured menu items
-          featured_menu: (restaurant as any).menuItems?.map((m: any) => ({
-            id: m.id,
-            name: m.name,
-            price: m.price,
-            category: m.category,
-            image: m.image
-          })) || []
-        };
-      }),
-
-      filters: {
-        city,
-        date,
-        party_size: party
+      restaurants: formattedRestaurants,
+      pagination: {
+        page,
+        limit,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limit)
       }
     });
 

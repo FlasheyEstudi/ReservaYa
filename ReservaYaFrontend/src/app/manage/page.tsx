@@ -5,7 +5,7 @@ import { ManageLayout } from '@/components/manage/ManageLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign, Users, CalendarCheck, TrendingUp, Clock, AlertCircle, CheckCircle } from 'lucide-react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+import { getApiUrl } from '@/lib/api';
 
 interface DashboardStats {
     salesToday: number;
@@ -43,7 +43,7 @@ export default function ManageDashboard() {
 
         try {
             // Fetch tables
-            const tablesRes = await fetch(`${API_URL}/restaurant/layout`, {
+            const tablesRes = await fetch(`${getApiUrl()}/restaurant/layout`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -61,7 +61,7 @@ export default function ManageDashboard() {
             }
 
             // Fetch reports for sales data
-            const reportsRes = await fetch(`${API_URL}/restaurant/reports?period=day`, {
+            const reportsRes = await fetch(`${getApiUrl()}/restaurant/reports?period=day`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -76,7 +76,7 @@ export default function ManageDashboard() {
             }
 
             // Fetch journal for recent activity
-            const journalRes = await fetch(`${API_URL}/restaurant/journal?limit=5`, {
+            const journalRes = await fetch(`${getApiUrl()}/restaurant/journal?limit=5`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 

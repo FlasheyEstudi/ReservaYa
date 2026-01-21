@@ -1,4 +1,5 @@
 'use client';
+import { getApiUrl } from '@/lib/api';
 
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -15,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Modal } from '@/components/ui/modal';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuthStore } from '@/stores';
+import { useToast } from '@/components/ui/toast-provider';
 
 interface MenuItem {
   id: string;
@@ -54,6 +56,7 @@ export default function RestaurantProfile() {
   const params = useParams();
   const restaurantId = params.id as string;
   const { user } = useAuthStore();
+  const { showSuccess, showError } = useToast();
 
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [loading, setLoading] = useState(true);
@@ -138,8 +141,8 @@ export default function RestaurantProfile() {
       if (!token) return;
 
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-        const res = await fetch(`${API_URL}/likes`, {
+        const apiUrl = getApiUrl();
+        const res = await fetch(`${apiUrl}/likes`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
@@ -156,8 +159,8 @@ export default function RestaurantProfile() {
     // Fetch locations/branches for this restaurant
     const fetchLocations = async () => {
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-        const res = await fetch(`${API_URL}/public/restaurant/${restaurantId}/locations`);
+        const apiUrl = getApiUrl();
+        const res = await fetch(`${apiUrl}/public/restaurant/${restaurantId}/locations`);
         if (res.ok) {
           const data = await res.json();
           setLocations(data.locations || []);
@@ -185,8 +188,8 @@ export default function RestaurantProfile() {
     setIsLiked(!previousState);
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-      const res = await fetch(`${API_URL}/likes`, {
+      const apiUrl = getApiUrl();
+      const res = await fetch(`${apiUrl}/likes`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -208,9 +211,9 @@ export default function RestaurantProfile() {
   // Fetch available tables for selected date/time/party
   const fetchAvailableTables = async () => {
     setLoadingTables(true);
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+    const apiUrl = getApiUrl();
     try {
-      const res = await fetch(`${API_URL}/restaurants/${restaurantId}/tables?date=${date}&time=${time}&partySize=${people}`);
+      const res = await fetch(`${apiUrl}/restaurants/${restaurantId}/tables?date=${date}&time=${time}&partySize=${people}`);
       if (res.ok) {
         const data = await res.json();
         // Filter tables that can accommodate the party size
@@ -220,7 +223,7 @@ export default function RestaurantProfile() {
         setAvailableTables(suitable);
       } else {
         // Fallback: show all restaurant tables
-        const tablesRes = await fetch(`${API_URL}/restaurant/layout`, {
+        const tablesRes = await fetch(`${apiUrl}/restaurant/layout`, {
           headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
         });
         if (tablesRes.ok) {
@@ -248,7 +251,7 @@ export default function RestaurantProfile() {
       return;
     }
 
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+    const apiUrl = getApiUrl();
     try {
       const payload = {
         restaurant_id: selectedLocationId, // Use selected branch/location
@@ -260,7 +263,7 @@ export default function RestaurantProfile() {
       };
       console.log('SENDING RESERVATION:', JSON.stringify(payload, null, 2));
 
-      const res = await fetch(`${API_URL}/reservations`, {
+      const res = await fetch(`${apiUrl}/reservations`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -275,11 +278,11 @@ export default function RestaurantProfile() {
       if (res.ok) {
         setStep('success');
       } else {
-        alert('Error al reservar. Intenta con otro horario o mesa.');
+        showError('Error al reservar', 'Intenta con otro horario o mesa');
       }
     } catch (e) {
       console.error('Reservation error:', e);
-      alert('Error de conexión. Intenta de nuevo.');
+      showError('Error de conexión', 'Verifica tu conexión e intenta de nuevo');
     } finally {
       setSubmitting(false);
     }
@@ -294,8 +297,8 @@ export default function RestaurantProfile() {
     }
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-      const res = await fetch(`${API_URL}/reviews`, {
+      const apiUrl = getApiUrl();
+      const res = await fetch(`${apiUrl}/reviews`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -310,11 +313,11 @@ export default function RestaurantProfile() {
 
       if (res.ok) {
         setIsReviewModalOpen(false);
-        // Refresh restaurant data to show new review
-        // In a real app we might just update local state optimistically
+        showSuccess('¡Reseña enviada!', 'Gracias por tu opinión');
+        // Refresh restaurant data
         window.location.reload();
       } else {
-        alert('Error al enviar reseña');
+        showError('Error', 'No se pudo enviar la reseña');
       }
     } catch (e) {
       console.error('Error submitting review:', e);

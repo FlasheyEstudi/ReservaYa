@@ -18,17 +18,35 @@ export async function PATCH(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    console.log('[CLOSE ORDER] Starting close order request');
+
     const authResult = await authenticateToken(request);
-    if (authResult instanceof NextResponse) return authResult;
+    if (authResult instanceof NextResponse) {
+        console.log('[CLOSE ORDER] Auth failed');
+        return authResult;
+    }
 
     const user = authResult;
+    console.log('[CLOSE ORDER] User authenticated:', user.email, 'role:', user.role);
 
     // Only managers and waiters can close orders
     const roleCheck = requireRole(['manager', 'waiter'])(user, null as any);
-    if (roleCheck) return roleCheck;
+    if (roleCheck) {
+        console.log('[CLOSE ORDER] Role check failed');
+        return roleCheck;
+    }
 
     const { rid } = user;
-    const { id: orderId } = await params;
+
+    let orderId: string;
+    try {
+        const resolvedParams = await params;
+        orderId = resolvedParams.id;
+        console.log('[CLOSE ORDER] Order ID:', orderId);
+    } catch (err) {
+        console.error('[CLOSE ORDER] Error resolving params:', err);
+        return NextResponse.json({ error: 'Invalid order ID' }, { status: 400, headers: corsHeaders });
+    }
 
     try {
         // Parse optional checkout data from request body
@@ -38,16 +56,21 @@ export async function PATCH(
         let paymentMethod: string | null = null;
 
         try {
-            const body = await request.json();
-            tip = parseFloat(body.tip) || 0;
-            discount = parseFloat(body.discount) || 0;
-            discountType = body.discountType || null;
-            paymentMethod = body.paymentMethod || null;
-        } catch {
-            // No body or invalid JSON - use defaults
+            const bodyText = await request.text();
+            if (bodyText) {
+                const body = JSON.parse(bodyText);
+                tip = parseFloat(body.tip) || 0;
+                discount = parseFloat(body.discount) || 0;
+                discountType = body.discountType || null;
+                paymentMethod = body.paymentMethod || null;
+                console.log('[CLOSE ORDER] Checkout data:', { tip, discount, discountType, paymentMethod });
+            }
+        } catch (parseErr) {
+            console.log('[CLOSE ORDER] No body or invalid JSON, using defaults');
         }
 
         // Find the order and verify it belongs to this restaurant
+        console.log('[CLOSE ORDER] Finding order:', orderId, 'for restaurant:', rid);
         const order = await db.order.findFirst({
             where: {
                 id: orderId,
@@ -56,11 +79,14 @@ export async function PATCH(
         });
 
         if (!order) {
+            console.log('[CLOSE ORDER] Order not found');
             return NextResponse.json(
                 { error: 'Order not found' },
                 { status: 404, headers: corsHeaders }
             );
         }
+
+        console.log('[CLOSE ORDER] Order found, current total:', order.total, 'status:', order.status);
 
         // Calculate final total with discount and tip
         let finalTotal = Number(order.total);
@@ -72,6 +98,7 @@ export async function PATCH(
             }
         }
         finalTotal = Math.max(0, finalTotal) + tip;
+        console.log('[CLOSE ORDER] Final total calculated:', finalTotal);
 
         // Update order status to closed with checkout data
         const updatedOrder = await db.order.update({
@@ -87,18 +114,7 @@ export async function PATCH(
             }
         });
 
-        // If there's a table associated, we DO NOT automatically free it anymore.
-        // The frontend handles the transition to 'reserved' (cleaning) or 'free'.
-        // This prevents the "zombie state" race condition where the table flips to free
-        // while the waiter is setting it to cleaning.
-        /*
-        if (order.tableId) {
-            await db.table.update({
-                where: { id: order.tableId },
-                data: { currentStatus: 'free' }
-            });
-        }
-        */
+        console.log('[CLOSE ORDER] Order closed successfully:', updatedOrder.id);
 
         return NextResponse.json({
             message: 'Order closed successfully',
@@ -113,9 +129,10 @@ export async function PATCH(
         }, { headers: corsHeaders });
 
     } catch (error) {
-        console.error('Error closing order:', error);
+        console.error('[CLOSE ORDER] Error:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         return NextResponse.json(
-            { error: 'Internal server error' },
+            { error: 'Internal server error', details: errorMessage },
             { status: 500, headers: corsHeaders }
         );
     }

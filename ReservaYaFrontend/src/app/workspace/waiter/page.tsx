@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+import { getApiUrl } from '@/lib/api';
 
 interface Table {
   id: string;
@@ -45,17 +45,30 @@ export default function WaiterWorkspace() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [activeView, setActiveView] = useState<'tables' | 'order' | 'menu'>('tables');
-  const [cartItems, setCartItems] = useState<any[]>([]);
+  // Per-table cart storage: { [tableId]: CartItem[] }
+  const [tableCartsMap, setTableCartsMap] = useState<Record<string, any[]>>({});
   const [walkInPax, setWalkInPax] = useState(2);
   const [notification, setNotification] = useState<string | null>(null);
   const [menuCategory, setMenuCategory] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingOrder, setIsLoadingOrder] = useState(false);
   // Checkout state
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [checkoutTip, setCheckoutTip] = useState(0);
   const [checkoutDiscount, setCheckoutDiscount] = useState(0);
   const [checkoutDiscountType, setCheckoutDiscountType] = useState<'percentage' | 'fixed'>('percentage');
   const [checkoutPaymentMethod, setCheckoutPaymentMethod] = useState<'cash' | 'card' | 'transfer'>('cash');
+
+  // Current table's cart (derived from tableCartsMap)
+  const cartItems = selectedTable ? (tableCartsMap[selectedTable.id] || []) : [];
+  const setCartItems = (updater: any[] | ((prev: any[]) => any[])) => {
+    if (!selectedTable) return;
+    setTableCartsMap(prev => {
+      const currentCart = prev[selectedTable.id] || [];
+      const newCart = typeof updater === 'function' ? updater(currentCart) : updater;
+      return { ...prev, [selectedTable.id]: newCart };
+    });
+  };
 
   const categories = ['all', ...new Set(menuItems.map(i => i.category))];
 
@@ -76,7 +89,7 @@ export default function WaiterWorkspace() {
     if (!token) return;
 
     try {
-      const res = await fetch(`${API_URL}/menu`, {
+      const res = await fetch(`${getApiUrl()}/menu`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -105,7 +118,7 @@ export default function WaiterWorkspace() {
     }
 
     try {
-      const res = await fetch(`${API_URL}/restaurant/layout`, {
+      const res = await fetch(`${getApiUrl()}/restaurant/layout`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -146,9 +159,48 @@ export default function WaiterWorkspace() {
     }
   };
 
-  const handleTableClick = (table: Table) => {
+  const handleTableClick = async (table: Table) => {
     setSelectedTable(table);
     setActiveView('order');
+
+    // Fetch current order for this table if occupied
+    if (table.status === 'occupied' || table.status === 'payment_pending') {
+      setIsLoadingOrder(true);
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const res = await fetch(`${getApiUrl()}/orders?tableId=${table.id}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.order) {
+              // Update table with loaded order
+              const orderWithItems = {
+                id: data.order.id,
+                items: (data.order.items || []).map((item: any) => ({
+                  id: item.id,
+                  name: item.menuItem?.name || item.name || 'Item',
+                  quantity: item.quantity,
+                  price: parseFloat(item.menuItem?.price || item.price || 0),
+                  status: item.status,
+                  station: item.station || 'kitchen'
+                })),
+                total: parseFloat(data.order.total) || 0
+              };
+              setSelectedTable({ ...table, currentOrder: orderWithItems });
+              setTables(prev => prev.map(t => t.id === table.id ? { ...t, currentOrder: orderWithItems } : t));
+            }
+          }
+        } catch (err) {
+          console.error('Error fetching order:', err);
+        } finally {
+          setIsLoadingOrder(false);
+        }
+      } else {
+        setIsLoadingOrder(false);
+      }
+    }
   };
 
   const handleOccupyTable = async () => {
@@ -167,7 +219,7 @@ export default function WaiterWorkspace() {
     const token = localStorage.getItem('token');
     if (token) {
       try {
-        const res = await fetch(`${API_URL}/restaurant/tables/${selectedTable.id}/status`, {
+        const res = await fetch(`${getApiUrl()}/restaurant/tables/${selectedTable.id}/status`, {
           method: 'PATCH',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'occupied' })
@@ -178,6 +230,39 @@ export default function WaiterWorkspace() {
       } catch (err) {
         console.error('Error updating table status:', err);
         showToast('⚠️ Error de conexión');
+      }
+    }
+  };
+
+  const handleForceFree = async () => {
+    if (!selectedTable) return;
+    if (!confirm(`⚠️ ¿Estás seguro de liberar la Mesa ${selectedTable.number} forzosamente?\n\nEsto borrará el estado de la mesa sin cerrar ninguna orden asociada.`)) return;
+
+    const token = localStorage.getItem('token');
+
+    // Clear cart for this table
+    setTableCartsMap(prev => {
+      const newMap = { ...prev };
+      delete newMap[selectedTable.id];
+      return newMap;
+    });
+
+    // Update local state
+    setTables(prev => prev.map(t => t.id === selectedTable.id ? { ...t, status: 'free' as const, currentOrder: undefined, pax: undefined } : t));
+    setSelectedTable(null);
+    setActiveView('tables');
+    showToast(`Mesa ${selectedTable.number} liberada forzosamente`);
+
+    // Persist 'free' status to backend
+    if (token) {
+      try {
+        await fetch(`${getApiUrl()}/restaurant/tables/${selectedTable.id}/status`, {
+          method: 'PATCH',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'free' })
+        });
+      } catch (err) {
+        console.error('Error updating table status:', err);
       }
     }
   };
@@ -233,7 +318,7 @@ export default function WaiterWorkspace() {
             notes: ''
           }))
         };
-        const res = await fetch(`${API_URL}/orders`, {
+        const res = await fetch(`${getApiUrl()}/orders`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify(orderPayload)
@@ -272,7 +357,7 @@ export default function WaiterWorkspace() {
     const token = localStorage.getItem('token');
     if (token) {
       try {
-        await fetch(`${API_URL}/restaurant/tables/${selectedTable.id}/status`, {
+        await fetch(`${getApiUrl()}/restaurant/tables/${selectedTable.id}/status`, {
           method: 'PATCH',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'payment_pending' })
@@ -284,7 +369,15 @@ export default function WaiterWorkspace() {
   };
 
   const openCheckoutModal = () => {
-    if (!selectedTable?.currentOrder) return;
+    if (!selectedTable?.currentOrder) {
+      // If table is payment_pending but no order loaded, offer to force free
+      if (selectedTable?.status === 'payment_pending' || selectedTable?.status === 'occupied') {
+        if (confirm('⚠️ No se encontró orden para esta mesa. ¿Deseas liberarla forzosamente?')) {
+          handleForceFree();
+        }
+      }
+      return;
+    }
     setCheckoutTip(0);
     setCheckoutDiscount(0);
     setCheckoutDiscountType('percentage');
@@ -311,12 +404,19 @@ export default function WaiterWorkspace() {
     const orderId = selectedTable.currentOrder?.id;
     const token = localStorage.getItem('token');
 
+    // Validate we have an order to close
+    if (!orderId) {
+      showToast('⚠️ No hay orden activa para cerrar');
+      setShowCheckoutModal(false);
+      return;
+    }
+
     setShowCheckoutModal(false);
 
     // Close the order with checkout data
-    if (token && orderId) {
+    if (token) {
       try {
-        const res = await fetch(`${API_URL}/restaurant/orders/${orderId}/close`, {
+        const res = await fetch(`${getApiUrl()}/restaurant/orders/${orderId}/close`, {
           method: 'PATCH',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -327,29 +427,37 @@ export default function WaiterWorkspace() {
           })
         });
         if (!res.ok) {
-          showToast('⚠️ Error al cerrar orden');
+          const errorData = await res.json().catch(() => ({}));
+          showToast(`⚠️ ${errorData.error || 'Error al cerrar la orden'}`);
           return;
         }
       } catch (err) {
         console.error('Error closing order:', err);
-        showToast('⚠️ Error de conexión');
+        showToast('⚠️ Error de conexión al cerrar');
         return;
       }
     }
 
+    // Clear cart for this table
+    setTableCartsMap(prev => {
+      const newMap = { ...prev };
+      delete newMap[tableId];
+      return newMap;
+    });
+
     // Update local state
-    setTables(prev => prev.map(t => t.id === tableId ? { ...t, status: 'reserved' as const, currentOrder: undefined, pax: undefined } : t));
+    setTables(prev => prev.map(t => t.id === tableId ? { ...t, status: 'free' as const, currentOrder: undefined, pax: undefined } : t));
     setSelectedTable(null);
     setActiveView('tables');
-    showToast(`Mesa ${tableNumber} cobrada - esperando limpieza (5 min)`);
+    showToast(`✅ Mesa ${tableNumber} cobrada correctamente`);
 
-    // Persist 'reserved' status to backend as waiting indicator
+    // Persist 'free' status to backend
     if (token) {
       try {
-        await fetch(`${API_URL}/restaurant/tables/${tableId}/status`, {
+        await fetch(`${getApiUrl()}/restaurant/tables/${tableId}/status`, {
           method: 'PATCH',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'reserved' })
+          body: JSON.stringify({ status: 'free' })
         });
       } catch (err) {
         console.error('Error updating table status:', err);
@@ -363,7 +471,7 @@ export default function WaiterWorkspace() {
 
       if (token) {
         try {
-          await fetch(`${API_URL}/restaurant/tables/${tableId}/status`, {
+          await fetch(`${getApiUrl()}/restaurant/tables/${tableId}/status`, {
             method: 'PATCH',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: 'free' })
@@ -406,7 +514,7 @@ export default function WaiterWorkspace() {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const res = await fetch(`${API_URL}/orders/items/${itemId}/status`, {
+      const res = await fetch(`${getApiUrl()}/orders/items/${itemId}/status`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'served' })
@@ -693,24 +801,44 @@ export default function WaiterWorkspace() {
 
               {/* Action Buttons */}
               {selectedTable.status !== 'free' && activeView === 'order' && cartItems.length === 0 && (
-                <div className="border-t border-stone-200 p-4 flex gap-2">
-                  <Button variant="outline" onClick={() => setActiveView('menu')} className="flex-1">
-                    <Plus className="h-4 w-4 mr-1" /> Agregar Items
-                  </Button>
-                  {selectedTable.status === 'occupied' && selectedTable.currentOrder && (
-                    <Button variant="outline" onClick={handleRequestBill} className="flex-1">
-                      <Receipt className="h-4 w-4 mr-1" /> Pedir Cuenta
+                <div className="border-t border-stone-200 p-4 flex flex-col gap-2">
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => setActiveView('menu')} className="flex-1">
+                      <Plus className="h-4 w-4 mr-1" /> Agregar Items
                     </Button>
-                  )}
-                  {selectedTable.status === 'payment_pending' && (
-                    <>
-                      <Button variant="outline" onClick={handlePrintBill} className="flex-1">
-                        <Receipt className="h-4 w-4 mr-1" /> Imprimir
+
+                    {/* Actions for valid orders */}
+                    {selectedTable.currentOrder ? (
+                      <>
+                        {selectedTable.status === 'occupied' && (
+                          <Button variant="outline" onClick={handleRequestBill} className="flex-1">
+                            <Receipt className="h-4 w-4 mr-1" /> Pedir Cuenta
+                          </Button>
+                        )}
+                        {selectedTable.status === 'payment_pending' && (
+                          <>
+                            <Button variant="outline" onClick={handlePrintBill} className="flex-1">
+                              <Receipt className="h-4 w-4 mr-1" /> Imprimir
+                            </Button>
+                            <Button onClick={openCheckoutModal} className="flex-1 bg-emerald-600 hover:bg-emerald-700">
+                              <CreditCard className="h-4 w-4 mr-1" /> Cobrar
+                            </Button>
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      /* Zombie table handling */
+                      <Button onClick={handleForceFree} variant="destructive" className="flex-1">
+                        <Trash2 className="h-4 w-4 mr-1" /> Liberar Mesa Error
                       </Button>
-                      <Button onClick={openCheckoutModal} className="flex-1 bg-emerald-600 hover:bg-emerald-700">
-                        <CreditCard className="h-4 w-4 mr-1" /> Cobrar
-                      </Button>
-                    </>
+                    )}
+                  </div>
+
+                  {/* Warning for zombie tables */}
+                  {!selectedTable.currentOrder && (
+                    <p className="text-xs text-center text-amber-600 mt-1">
+                      ⚠️ Mesa ocupada sin orden visible. Intenta "Liberar Mesa" si está bloqueada.
+                    </p>
                   )}
                 </div>
               )}

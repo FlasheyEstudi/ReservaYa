@@ -13,16 +13,16 @@ interface UseSocketOptions {
 
 export const useSocket = (options: UseSocketOptions = {}) => {
   const { user, isAuthenticated, restaurantId } = useAuthStore();
-  const { 
-    isConnected, 
-    connect: connectToStore, 
+  const {
+    isConnected,
+    connect: connectToStore,
     disconnect: disconnectFromStore,
     onOrderReady,
     onTableStatusChange,
     onNewReservation,
     onMarketingPush
   } = useWebSocketStore();
-  
+
   const socketRef = useRef<any>(null);
   const [connectionError, setConnectionError] = useState<string | null>(null);
 
@@ -43,8 +43,8 @@ export const useSocket = (options: UseSocketOptions = {}) => {
     const initSocket = async () => {
       try {
         // Dynamic import to avoid SSR issues
-        const { io } = await import('socket.io-client');
-        
+        const { default: io } = await import('socket.io-client');
+
         const socket = io('/', {
           path: '/socket.io/',
           transports: ['websocket', 'polling'],
@@ -64,10 +64,10 @@ export const useSocket = (options: UseSocketOptions = {}) => {
 
         // Connection event handlers
         socket.on('connect', () => {
-          console.log('Socket connected:', socket.id);
+
           setConnectionError(null);
           connectToStore(user.id, user.role, restaurantId);
-          
+
           // Authenticate with server
           socket.emit('authenticate', {
             userId: user.id,
@@ -92,7 +92,7 @@ export const useSocket = (options: UseSocketOptions = {}) => {
         });
 
         socket.on('authenticated', (data) => {
-          console.log('Socket authenticated:', data);
+          // Event handlers
         });
 
         // Real-time event handlers
@@ -127,7 +127,6 @@ export const useSocket = (options: UseSocketOptions = {}) => {
         });
 
         socket.on('vibrate', (data) => {
-          console.log('Vibration request:', data);
           if ('vibrate' in navigator && data.pattern) {
             navigator.vibrate(data.pattern);
           }

@@ -11,6 +11,20 @@ datasource db {
 }
 
 // Core & Authentication
+enum RestaurantStatus {
+  pending
+  active
+  suspended
+}
+
+enum EmployeeRole {
+  manager
+  chef
+  waiter
+  host
+  bartender
+}
+
 model Restaurant {
   id             String   @id @default(cuid())
   organizationId String?  @map("organization_id")
@@ -20,7 +34,7 @@ model Restaurant {
   address        String?
   latitude       Decimal? @db.Decimal(10, 8) // GPS latitude (-90 to 90)
   longitude      Decimal? @db.Decimal(11, 8) // GPS longitude (-180 to 180)
-  status         String   @default("pending") // pending, active, suspended
+  status         RestaurantStatus   @default(pending) // pending, active, suspended
   config         String   @default("{}")
   description    String?
   phone          String?
@@ -48,6 +62,7 @@ model Restaurant {
   loyaltyProgram     LoyaltyProgram?
 
   @@map("restaurants")
+  @@index([status])
 }
 
 model Employee {
@@ -56,7 +71,7 @@ model Employee {
   fullName     String?  @map("full_name")
   email        String
   pinHash      String   @map("pin_hash")
-  role         String   // 'manager', 'chef', 'waiter', 'host'
+  role         EmployeeRole   // 'manager', 'chef', 'waiter', 'host'
   isActive     Boolean  @default(true) @map("is_active")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
@@ -156,6 +171,20 @@ model Area {
   @@map("areas")
 }
 
+enum TableShape {
+  rectangle
+  circle
+  square
+}
+
+enum TableStatus {
+  free
+  occupied
+  dirty
+  reserved
+  payment_pending
+}
+
 model Table {
   id            String   @id @default(cuid())
   restaurantId  String   @map("restaurant_id")
@@ -164,8 +193,8 @@ model Table {
   capacity      Int
   posX          Int?     @map("pos_x")
   posY          Int?     @map("pos_y")
-  shape         String?  @default("rectangle") // rectangle, circle, square for canvas editor
-  currentStatus String   @default("free") @map("current_status") // free, occupied, dirty, reserved
+  shape         TableShape?  @default(rectangle) // rectangle, circle, square for canvas editor
+  currentStatus TableStatus   @default(free) @map("current_status") // free, occupied, dirty, reserved
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
@@ -175,6 +204,15 @@ model Table {
   orders       Order[]
 
   @@map("tables")
+  @@index([restaurantId]) 
+  @@index([currentStatus])
+}
+
+enum ReservationStatus {
+  confirmed
+  seated
+  cancelled
+  no_show
 }
 
 model Reservation {
@@ -185,7 +223,7 @@ model Reservation {
   reservationTime DateTime @map("reservation_time")
   partySize       Int      @map("party_size")
   notes           String?  // Customer special requests (birthday, allergies, etc.)
-  status          String   @default("confirmed") // confirmed, seated, cancelled, no_show
+  status          ReservationStatus   @default(confirmed) // confirmed, seated, cancelled, no_show
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
@@ -194,6 +232,10 @@ model Reservation {
   table      Table?     @relation(fields: [tableId], references: [id], onDelete: SetNull)
 
   @@map("reservations")
+  @@index([restaurantId])
+  @@index([userId])
+  @@index([reservationTime])
+  @@index([status])
 }
 
 // Menu & Categories
@@ -211,6 +253,11 @@ model MenuCategory {
   @@map("menu_categories")
 }
 
+enum ProductionStation {
+  kitchen
+  bar
+}
+
 model MenuItem {
   id                String   @id @default(cuid())
   restaurantId      String   @map("restaurant_id")
@@ -219,7 +266,7 @@ model MenuItem {
   description       String?
   price             Decimal
   category          String?  // Legacy field kept for compatibility
-  productionStation String?  @map("production_station") // kitchen, bar
+  productionStation ProductionStation?  @map("production_station") // kitchen, bar
   station           String?  // Legacy alias for productionStation
   isAvailable       Boolean  @default(true) @map("is_available")
   image             String?
@@ -231,6 +278,13 @@ model MenuItem {
   orderItems     OrderItem[]
 
   @@map("menu_items")
+  @@index([restaurantId])
+}
+
+enum OrderStatus {
+  open
+  payment_pending
+  closed
 }
 
 model Order {
@@ -238,7 +292,7 @@ model Order {
   restaurantId  String   @map("restaurant_id")
   tableId       String   @map("table_id")
   waiterId      String?  @map("waiter_id")
-  status        String   @default("open") // open, payment_pending, closed
+  status        OrderStatus   @default(open) // open, payment_pending, closed
   total         Decimal  @default(0)
   tip           Decimal  @default(0)
   discount      Decimal  @default(0)
@@ -253,6 +307,16 @@ model Order {
   orderItems OrderItem[]
 
   @@map("orders")
+  @@index([restaurantId])
+  @@index([tableId])
+  @@index([status])
+}
+
+enum OrderItemStatus {
+  pending
+  cooking
+  ready
+  served
 }
 
 model OrderItem {
@@ -261,7 +325,7 @@ model OrderItem {
   menuItemId String   @map("menu_item_id")
   quantity   Int
   notes      String?
-  status     String   @default("pending") // pending -> cooking -> ready -> served
+  status     OrderItemStatus   @default(pending) // pending -> cooking -> ready -> served
   station    String   // kitchen, bar
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
@@ -302,6 +366,7 @@ model Review {
   user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("reviews")
+  @@index([restaurantId])
 }
 
 model Like {

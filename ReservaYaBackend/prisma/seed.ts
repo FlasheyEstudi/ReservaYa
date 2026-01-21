@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, EmployeeRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -220,7 +220,7 @@ async function main() {
     console.log('✅ Mesas creadas: T1, T2, T3, T4');
 
     // 7. Crear Empleados del Restaurante (Roles de Restaurante)
-    const roles = ['manager', 'chef', 'waiter', 'host', 'bartender'];
+    const roles: EmployeeRole[] = ['manager', 'chef', 'waiter', 'host', 'bartender'];
 
     for (const role of roles) {
         await prisma.employee.create({
@@ -329,6 +329,89 @@ async function main() {
     });
     console.log('✅ Items del menú creados');
 
+    // ========================================
+    // SEGUNDO RESTAURANTE: Café Luna
+    // ========================================
+    const restaurant2 = await prisma.restaurant.create({
+        data: {
+            businessCode: 'CAFE-LUNA',
+            name: 'Café Luna',
+            taxId: '888888888',
+            address: 'Av. Central 456, Ciudad Demo',
+            status: 'active',
+            config: JSON.stringify({
+                currency: 'USD',
+                service_charge: 5,
+                open_hours: [{ day: 'Mon', open: '07:00', close: '20:00' }],
+            }),
+        },
+    });
+    console.log('✅ Restaurante 2 creado: CAFE-LUNA');
+
+    // Área para Café Luna
+    const area2 = await prisma.area.create({
+        data: {
+            name: 'Salón Principal',
+            restaurantId: restaurant2.id
+        },
+    });
+    console.log('✅ Área creada para Café Luna: Salón Principal');
+
+    // Mesas para Café Luna
+    await prisma.table.createMany({
+        data: [
+            { restaurantId: restaurant2.id, areaId: area2.id, tableNumber: 'C1', capacity: 2, posX: 50, posY: 50, currentStatus: 'free' },
+            { restaurantId: restaurant2.id, areaId: area2.id, tableNumber: 'C2', capacity: 2, posX: 150, posY: 50, currentStatus: 'free' },
+            { restaurantId: restaurant2.id, areaId: area2.id, tableNumber: 'C3', capacity: 4, posX: 50, posY: 150, currentStatus: 'free' },
+            { restaurantId: restaurant2.id, areaId: area2.id, tableNumber: 'C4', capacity: 4, posX: 150, posY: 150, currentStatus: 'free' },
+        ],
+    });
+    console.log('✅ Mesas creadas para Café Luna: C1, C2, C3, C4');
+
+    // Empleados para Café Luna (solo mesero y chef)
+    const cafe2Roles: EmployeeRole[] = ['manager', 'waiter', 'chef'];
+    for (const role of cafe2Roles) {
+        await prisma.employee.create({
+            data: {
+                restaurantId: restaurant2.id,
+                fullName: `${role.charAt(0).toUpperCase() + role.slice(1)} Café Luna`,
+                email: `${role}@cafeluna.com`,
+                role: role,
+                pinHash: pinHash,
+                isActive: true,
+            },
+        });
+        console.log(`✅ Empleado Café Luna: ${role}@cafeluna.com (Rol: ${role})`);
+    }
+
+    // Categorías de Menú para Café Luna
+    const catBebidas2 = await prisma.menuCategory.create({
+        data: { restaurantId: restaurant2.id, name: 'Cafés y Bebidas', sortOrder: 1 },
+    });
+    const catPasteles = await prisma.menuCategory.create({
+        data: { restaurantId: restaurant2.id, name: 'Pasteles y Postres', sortOrder: 2 },
+    });
+    const catAlmuerzos = await prisma.menuCategory.create({
+        data: { restaurantId: restaurant2.id, name: 'Almuerzos Ligeros', sortOrder: 3 },
+    });
+
+    // Menu Items para Café Luna
+    await prisma.menuItem.createMany({
+        data: [
+            { restaurantId: restaurant2.id, categoryId: catBebidas2.id, name: 'Café Americano', description: 'Café filtrado tradicional', price: 2.50, station: 'bar', productionStation: 'bar', isAvailable: true },
+            { restaurantId: restaurant2.id, categoryId: catBebidas2.id, name: 'Latte', description: 'Espresso con leche cremosa', price: 4.00, station: 'bar', productionStation: 'bar', isAvailable: true },
+            { restaurantId: restaurant2.id, categoryId: catBebidas2.id, name: 'Cappuccino', description: 'Espresso con espuma de leche', price: 3.75, station: 'bar', productionStation: 'bar', isAvailable: true },
+            { restaurantId: restaurant2.id, categoryId: catBebidas2.id, name: 'Té Verde', description: 'Té verde importado', price: 2.00, station: 'bar', productionStation: 'bar', isAvailable: true },
+            { restaurantId: restaurant2.id, categoryId: catPasteles.id, name: 'Croissant', description: 'Croissant de mantequilla recién horneado', price: 3.00, station: 'kitchen', productionStation: 'kitchen', isAvailable: true },
+            { restaurantId: restaurant2.id, categoryId: catPasteles.id, name: 'Cheesecake', description: 'Pastel de queso estilo NY', price: 5.50, station: 'kitchen', productionStation: 'kitchen', isAvailable: true },
+            { restaurantId: restaurant2.id, categoryId: catPasteles.id, name: 'Muffin de Arándano', description: 'Muffin casero con arándanos', price: 2.75, station: 'kitchen', productionStation: 'kitchen', isAvailable: true },
+            { restaurantId: restaurant2.id, categoryId: catAlmuerzos.id, name: 'Sandwich Club', description: 'Triple piso con pollo, tocino, lechuga y tomate', price: 8.50, station: 'kitchen', productionStation: 'kitchen', isAvailable: true },
+            { restaurantId: restaurant2.id, categoryId: catAlmuerzos.id, name: 'Ensalada César', description: 'Lechuga romana, crutones, parmesano', price: 7.00, station: 'kitchen', productionStation: 'kitchen', isAvailable: true },
+            { restaurantId: restaurant2.id, categoryId: catAlmuerzos.id, name: 'Wrap de Pollo', description: 'Tortilla con pollo grillado y vegetales', price: 6.50, station: 'kitchen', productionStation: 'kitchen', isAvailable: true },
+        ],
+    });
+    console.log('✅ Menú de Café Luna creado (10 items)');
+
     // 9. Crear Reservas (Datos para Screenshots)
     const today = new Date();
     const tomorrow = new Date(today);
@@ -364,7 +447,7 @@ async function main() {
             tableId: null,
             reservationTime: new Date(today.setHours(21, 0, 0, 0)),
             partySize: 6,
-            status: 'pending',
+            status: 'confirmed',
         }
     });
 

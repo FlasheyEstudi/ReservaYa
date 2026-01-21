@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Megaphone, Plus, Send, Users, Mail, MessageSquare, Calendar, Gift, Percent, X, Eye, Edit, Trash2, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { getApiUrl } from '@/lib/api';
 
 interface Campaign {
     id: string;
@@ -59,9 +60,9 @@ export default function ManageMarketing() {
         if (!token) return;
 
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+            const apiUrl = getApiUrl();
             // Fetch campaigns from a potential marketing API
-            const res = await fetch(`${API_URL}/restaurant/marketing`, {
+            const res = await fetch(`${apiUrl}/restaurant/marketing`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 

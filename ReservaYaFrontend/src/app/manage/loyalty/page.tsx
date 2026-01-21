@@ -1,4 +1,5 @@
 'use client';
+import { getApiUrl } from '@/lib/api';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -11,8 +12,9 @@ import {
     CreditCard, Gift, Star, Save, Loader2, ToggleLeft, ToggleRight,
     Users, Award, TrendingUp, Sparkles
 } from 'lucide-react';
+import { useToast } from '@/components/ui/toast-provider';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+const apiUrl = getApiUrl();
 
 interface LoyaltyProgram {
     id?: string;
@@ -30,6 +32,7 @@ interface LoyaltyStats {
 
 export default function LoyaltyProgramPage() {
     const router = useRouter();
+    const { showSuccess, showError } = useToast();
     const [program, setProgram] = useState<LoyaltyProgram>({
         isActive: false,
         visitsRequired: 10,
@@ -56,7 +59,7 @@ export default function LoyaltyProgramPage() {
 
     const fetchProgram = async (token: string) => {
         try {
-            const res = await fetch(`${API_URL}/loyalty/program`, {
+            const res = await fetch(`${apiUrl}/loyalty/program`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
@@ -82,7 +85,7 @@ export default function LoyaltyProgramPage() {
         setIsSaving(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`${API_URL}/loyalty/program`, {
+            const res = await fetch(`${apiUrl}/loyalty/program`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -95,13 +98,14 @@ export default function LoyaltyProgramPage() {
                 const data = await res.json();
                 setProgram(prev => ({ ...prev, id: data.program.id }));
                 setHasChanges(false);
-                alert('¡Programa de fidelidad guardado!');
+                showSuccess('¡Guardado!', 'Programa de fidelidad actualizado correctamente');
             } else {
-                alert('Error al guardar');
+                const errorData = await res.json().catch(() => ({}));
+                showError('Error al guardar', errorData.error || 'No se pudo guardar la configuración');
             }
         } catch (err) {
             console.error('Error saving program:', err);
-            alert('Error de conexión');
+            showError('Error de conexión', 'Verifica tu conexión e intenta de nuevo');
         } finally {
             setIsSaving(false);
         }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import jwt from 'jsonwebtoken';
 
 // Helper to get user ID from token
 function getUserFromToken(req: NextRequest): { uid: string; role: string } | null {
@@ -8,8 +9,7 @@ function getUserFromToken(req: NextRequest): { uid: string; role: string } | nul
 
     const token = authHeader.split(' ')[1];
     try {
-        const jwt = require('jsonwebtoken');
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key-change-in-production');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key-change-in-production') as any;
         return { uid: decoded.uid, role: decoded.role };
     } catch {
         return null;

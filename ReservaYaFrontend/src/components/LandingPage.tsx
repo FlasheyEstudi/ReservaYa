@@ -394,7 +394,7 @@ export default function LandingPage() {
                                             ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
                                             : 'bg-white/10 hover:bg-white/20 text-white'
                                         }`}
-                                    onClick={() => router.push(plan.price === 0 ? '/auth/register-business' : '/pricing')}
+                                    onClick={() => router.push(plan.price === 0 ? '/auth/register?mode=business' : '/pricing')}
                                 >
                                     {plan.cta}
                                 </Button>

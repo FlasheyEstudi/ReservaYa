@@ -21,9 +21,53 @@ const CATEGORIES = [
   { id: 'healthy', label: 'Saludable', icon: Salad, color: 'bg-emerald-500' },
 ];
 
+// Types
+interface Review {
+  id: string;
+  rating: number;
+  comment: string | null;
+  user_name: string;
+  date: string;
+}
+
+interface MenuItem {
+  id: string;
+  name: string;
+  price: number;
+  category: string | null;
+  image: string | null;
+}
+
+interface Restaurant {
+  id: string;
+  name: string;
+  business_code: string;
+  category: string;
+  description: string;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  image: string | null;
+  status: string;
+  available_capacity: number;
+  total_capacity: number;
+  is_available: boolean;
+  average_rating: number;
+  review_count: number;
+  likes_count: number;
+  table_count: number;
+  reviews: Review[];
+  featured_menu: MenuItem[];
+  distance?: number | null;
+  priceRange?: string; // Mapped in frontend
+  isOpen?: boolean; // Mapped in frontend
+  likesCount?: number; // Mapped compatibility
+  rating?: number; // Mapped compatibility
+}
+
 export default function Home() {
   const router = useRouter();
-  const [restaurants, setRestaurants] = useState<any[]>([]);
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
@@ -31,6 +75,11 @@ export default function Home() {
   const [userName, setUserName] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [isLoadingRestaurants, setIsLoadingRestaurants] = useState(false);
+
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [totalRestaurants, setTotalRestaurants] = useState(0);
 
   // User location hook
   const { location, status: locationStatus, selectCity, requestGPS } = useUserLocation();
@@ -40,8 +89,17 @@ export default function Home() {
     c => c.lat === location?.latitude && c.lng === location?.longitude
   )?.id;
 
-  // Fetch restaurants based on user location
-  const fetchRestaurants = useCallback(async (lat?: number, lng?: number) => {
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1); // Reset to page 1 on new search
+      fetchRestaurants(1, true);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery, selectedCategory]);
+
+  // Fetch restaurants based on filters
+  const fetchRestaurants = useCallback(async (pageNum: number = 1, reset: boolean = false) => {
     const token = localStorage.getItem('token');
     if (!token) return;
 
@@ -49,35 +107,44 @@ export default function Home() {
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
-      // Use nearby endpoint if we have coordinates, otherwise use search
-      let url = `${API_URL}/search`;
-      if (lat && lng) {
-        url = `${API_URL}/restaurants/nearby?lat=${lat}&lng=${lng}&radius=50`;
-      }
+      // Build Query Params
+      const params = new URLSearchParams();
+      params.append('page', pageNum.toString());
+      params.append('limit', '10');
 
-      const res = await fetch(url);
+      if (searchQuery) params.append('search', searchQuery);
+      if (selectedCategory && selectedCategory !== 'all') params.append('category', selectedCategory);
+
+      // If we have specific city selected (via location hook usually providing lat/lng, 
+      // but search API expects city name or we implement lat/lng search later)
+      // For now, let's omit lat/lng unless search supports it, or send as meta
+
+      const res = await fetch(`${API_URL}/search?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
       if (res.ok) {
         const data = await res.json();
-        const restaurantList = data.restaurants || [];
-        if (restaurantList.length > 0) {
-          const mapped = restaurantList.map((r: any) => ({
-            ...r,
-            rating: r.average_rating || r.rating || 4.5,
-            likesCount: r.likes_count || r.likesCount || 0,
-            image: r.image || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=400&fit=crop',
-            priceRange: r.priceRange || '$$',
-            distance: r.distance !== undefined ? r.distance : null,
-            isOpen: r.isOpen !== undefined ? r.isOpen : true,
-          }));
-          setRestaurants(mapped);
+        const newRestaurants = data.restaurants || [];
+        const meta = data.pagination;
+
+        if (reset) {
+          setRestaurants(newRestaurants);
+        } else {
+          setRestaurants(prev => [...prev, ...newRestaurants]);
         }
+
+        setHasMore(meta.page < meta.totalPages);
+        setTotalRestaurants(meta.total);
       }
     } catch (e) {
       console.error('Error fetching:', e);
     } finally {
       setIsLoadingRestaurants(false);
     }
-  }, []);
+  }, [searchQuery, selectedCategory]);
 
   // Initial auth check and likes load
   useEffect(() => {
@@ -108,17 +175,18 @@ export default function Home() {
       }
     };
     loadLikes();
+
+    // Initial fetch
+    fetchRestaurants(1, true);
   }, []);
 
-  // Refetch when location changes
-  useEffect(() => {
-    if (isLoggedIn && location) {
-      fetchRestaurants(location.latitude, location.longitude);
-    } else if (isLoggedIn && locationStatus === 'denied') {
-      // No location, fetch without coordinates
-      fetchRestaurants();
+  const loadMore = () => {
+    if (!isLoadingRestaurants && hasMore) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchRestaurants(nextPage, false);
     }
-  }, [location, locationStatus, isLoggedIn, fetchRestaurants]);
+  };
 
   const toggleLike = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -147,23 +215,6 @@ export default function Home() {
     }
   };
 
-  const rankedRestaurants = [...restaurants].sort((a, b) => {
-    const aLiked = likedPosts.has(a.id) ? 100 : 0;
-    const bLiked = likedPosts.has(b.id) ? 100 : 0;
-    const aScore = aLiked + (a.likesCount || 0) + (a.rating || 0) * 10;
-    const bScore = bLiked + (b.likesCount || 0) + (b.rating || 0) * 10;
-    return bScore - aScore;
-  });
-
-  const filteredRestaurants = rankedRestaurants.filter(r => {
-    const matchesSearch = !searchQuery ||
-      r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.category?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' ||
-      r.category?.toLowerCase().includes(selectedCategory);
-    return matchesSearch && matchesCategory;
-  });
-
   if (isLoggedIn === null) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-stone-50">
@@ -190,33 +241,35 @@ export default function Home() {
         <div className="max-w-2xl mx-auto px-4 py-3">
           {/* Top Row */}
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-3">
-              <div>
-                <p className="text-xs text-stone-500">{getGreeting()}</p>
-                <h1 className="text-lg font-bold text-stone-900">{userName}! 👋</h1>
+            <div className="flex items-center justify-between w-full"> {/* Adjusted layout */}
+              <div className="flex items-center gap-3">
+                <div>
+                  <p className="text-xs text-stone-500">{getGreeting()}</p>
+                  <h1 className="text-lg font-bold text-stone-900">{userName}! 👋</h1>
+                </div>
+                <CitySelector
+                  currentCity={currentCityId}
+                  onSelectCity={selectCity}
+                  onRequestGPS={requestGPS}
+                  isLoading={locationStatus === 'loading'}
+                />
               </div>
-              {/* City Selector */}
-              <CitySelector
-                currentCity={currentCityId}
-                onSelectCity={selectCity}
-                onRequestGPS={requestGPS}
-                isLoading={locationStatus === 'loading'}
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowSearch(!showSearch)}
-                className="p-2 rounded-full bg-stone-100 hover:bg-stone-200 transition-colors"
-              >
-                {showSearch ? <X className="h-5 w-5 text-stone-600" /> : <Search className="h-5 w-5 text-stone-600" />}
-              </button>
-              <Avatar
-                className="h-10 w-10 ring-2 ring-orange-100 cursor-pointer"
-                onClick={() => router.push('/profile')}
-              >
-                <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userName}&backgroundColor=ffdfbf`} />
-                <AvatarFallback className="bg-orange-100 text-orange-700">{userName[0]}</AvatarFallback>
-              </Avatar>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowSearch(!showSearch)}
+                  className="p-2 rounded-full bg-stone-100 hover:bg-stone-200 transition-colors"
+                >
+                  {showSearch ? <X className="h-5 w-5 text-stone-600" /> : <Search className="h-5 w-5 text-stone-600" />}
+                </button>
+                <Avatar
+                  className="h-10 w-10 ring-2 ring-orange-100 cursor-pointer"
+                  onClick={() => router.push('/profile')}
+                >
+                  <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userName}&backgroundColor=ffdfbf`} />
+                  <AvatarFallback className="bg-orange-100 text-orange-700">{userName[0]}</AvatarFallback>
+                </Avatar>
+              </div>
             </div>
           </div>
 
@@ -264,30 +317,28 @@ export default function Home() {
         {/* Section Title */}
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-bold text-stone-900">
-            {selectedCategory === 'all' ? 'Cerca de ti' : CATEGORIES.find(c => c.id === selectedCategory)?.label}
+            {selectedCategory === 'all' ? 'Lugares Populares' : CATEGORIES.find(c => c.id === selectedCategory)?.label}
           </h2>
-          <span className="text-xs text-stone-500">{filteredRestaurants.length} lugares</span>
+          <span className="text-xs text-stone-500">{totalRestaurants} resultados</span>
         </div>
 
         {/* Restaurant Cards */}
         <div className="space-y-4">
-          {filteredRestaurants.map((restaurant) => (
+          {restaurants.map((restaurant) => (
             <article
               key={restaurant.id}
-              className="bg-white rounded-2xl overflow-hidden shadow-sm border border-stone-100 active:scale-[0.99] transition-transform cursor-pointer"
+              className={`bg-white rounded-2xl overflow-hidden shadow-sm border border-stone-100 active:scale-[0.99] transition-transform cursor-pointer ${!restaurant.is_available ? 'opacity-75 grayscale-[0.5]' : ''}`}
               onClick={() => router.push(`/restaurant/${restaurant.id}`)}
             >
               {/* Image with Overlay */}
               <div className="relative aspect-[16/9]">
                 <img
-                  src={restaurant.image}
+                  src={restaurant.image || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=400&fit=crop'}
                   alt={restaurant.name}
                   className="w-full h-full object-cover"
                 />
-                {/* Gradient Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
-                {/* Like Button */}
                 <button
                   onClick={(e) => toggleLike(restaurant.id, e)}
                   className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-md transition-all ${likedPosts.has(restaurant.id)
@@ -298,26 +349,28 @@ export default function Home() {
                   <Heart className={`h-5 w-5 ${likedPosts.has(restaurant.id) ? 'fill-current' : ''}`} />
                 </button>
 
-                {/* Status Badge */}
                 <div className="absolute top-3 left-3">
-                  <Badge className={`${restaurant.isOpen ? 'bg-emerald-500' : 'bg-stone-500'} text-white text-[10px] font-medium`}>
-                    {restaurant.isOpen ? '● Abierto' : '● Cerrado'}
-                  </Badge>
+                  {restaurant.is_available ? (
+                    <Badge className={`${restaurant.status === 'active' ? 'bg-emerald-500' : 'bg-stone-500'} text-white text-[10px] font-medium`}>
+                      {restaurant.status === 'active' ? '● Abierto' : '● Cerrado'}
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-stone-600 text-white text-[10px] font-medium">
+                      ● Sin cupo
+                    </Badge>
+                  )}
                 </div>
 
-                {/* Bottom Info */}
                 <div className="absolute bottom-3 left-3 right-3">
                   <h3 className="text-lg font-bold text-white mb-1 drop-shadow-md">{restaurant.name}</h3>
                   <div className="flex items-center gap-2 text-white/90 text-xs">
                     <span className="flex items-center gap-1">
                       <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                      <span className="font-semibold">{restaurant.rating?.toFixed(1) || '4.5'}</span>
+                      <span className="font-semibold">{restaurant.average_rating?.toFixed(1) || '4.5'}</span>
                       <span className="text-white/70">({restaurant.review_count || 0})</span>
                     </span>
                     <span>•</span>
                     <span>{restaurant.category || 'General'}</span>
-                    <span>•</span>
-                    <span>{restaurant.priceRange}</span>
                   </div>
                 </div>
               </div>
@@ -329,52 +382,9 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Featured Review */}
-              {restaurant.reviews && restaurant.reviews.length > 0 && (
-                <div className="px-3 pt-3">
-                  <div className="bg-stone-50 rounded-lg p-2.5">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Avatar className="h-5 w-5">
-                        <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${restaurant.reviews[0].user_name}`} />
-                        <AvatarFallback className="text-[8px] bg-orange-100 text-orange-700">{restaurant.reviews[0].user_name?.[0] || 'U'}</AvatarFallback>
-                      </Avatar>
-                      <span className="text-xs font-medium text-stone-700">{restaurant.reviews[0].user_name}</span>
-                      <div className="flex items-center gap-0.5 ml-auto">
-                        {[...Array(5)].map((_, i) => (
-                          <Star key={i} className={`h-3 w-3 ${i < restaurant.reviews[0].rating ? 'fill-amber-400 text-amber-400' : 'text-stone-200'}`} />
-                        ))}
-                      </div>
-                    </div>
-                    <p className="text-xs text-stone-600 line-clamp-2 italic">"{restaurant.reviews[0].comment}"</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Featured Menu Items */}
-              {restaurant.featured_menu && restaurant.featured_menu.length > 0 && (
-                <div className="px-3 pt-3">
-                  <p className="text-xs font-semibold text-stone-700 mb-2">Platillos destacados</p>
-                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                    {restaurant.featured_menu.slice(0, 4).map((item: any) => (
-                      <div key={item.id} className="flex-shrink-0 bg-stone-50 rounded-lg p-2 min-w-[100px]">
-                        <p className="text-xs font-medium text-stone-800 truncate">{item.name}</p>
-                        <p className="text-[10px] text-stone-500">{item.category}</p>
-                        <p className="text-xs font-bold text-orange-600 mt-1">${item.price}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* Card Footer */}
               <div className="p-3 flex items-center justify-between">
                 <div className="flex items-center gap-3 text-xs text-stone-500 flex-1 min-w-0">
-                  {restaurant.distance !== null && (
-                    <span className="flex items-center gap-1 shrink-0">
-                      <Navigation className="h-3.5 w-3.5 text-orange-500" />
-                      <span className="font-medium text-stone-700">{restaurant.distance.toFixed(1)} km</span>
-                    </span>
-                  )}
                   {restaurant.address && (
                     <ClickableAddress
                       address={restaurant.address}
@@ -386,6 +396,7 @@ export default function Home() {
                 </div>
                 <Button
                   size="sm"
+                  disabled={!restaurant.is_available}
                   className="bg-orange-500 hover:bg-orange-600 text-white rounded-full h-8 px-4 text-xs font-medium shadow-md shadow-orange-500/20 shrink-0"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -399,10 +410,24 @@ export default function Home() {
             </article>
           ))}
 
+          {/* Load More Button */}
+          {hasMore && restaurants.length > 0 && (
+            <div className="flex justify-center pt-4">
+              <Button
+                variant="outline"
+                onClick={loadMore}
+                disabled={isLoadingRestaurants}
+                className="rounded-full px-6"
+              >
+                {isLoadingRestaurants ? 'Cargando...' : 'Ver más restaurantes'}
+              </Button>
+            </div>
+          )}
+
         </div>
 
         {/* Empty State */}
-        {filteredRestaurants.length === 0 && (
+        {!isLoadingRestaurants && restaurants.length === 0 && (
           <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-stone-200">
             <Utensils className="h-12 w-12 text-stone-300 mx-auto mb-3" />
             <h3 className="font-semibold text-stone-700 mb-1">No encontramos resultados</h3>

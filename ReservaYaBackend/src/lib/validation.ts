@@ -49,7 +49,7 @@ export const CreateOrderSchema = z.object({
   table_id: z.string().min(1, 'Table ID is required'),
   items: z.array(z.object({
     menu_item_id: z.string().min(1, 'Menu item ID is required'),
-    quantity: z.number().min(1),
+    quantity: z.number().int().min(1),
     notes: z.string().optional()
   }))
 });

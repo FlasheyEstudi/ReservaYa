@@ -1,4 +1,5 @@
 import io from 'socket.io-client';
+import { getSocketUrl } from '@/lib/api';
 
 export interface SocketUser {
     uid: string;
@@ -38,7 +39,7 @@ export interface SocketEvents {
     staff_disconnected: (data: { userId: string; email: string; role: string; timestamp: string }) => void;
 }
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'http://localhost:8002';
+// Socket URL now resolved dynamically via getSocketUrl()
 
 export class ReservaYaSocket {
     private socket: any | null = null;
@@ -66,7 +67,7 @@ export class ReservaYaSocket {
     private setupSocket() {
         if (typeof window === 'undefined') return;
 
-        this.socket = io(SOCKET_URL, {
+        this.socket = io(getSocketUrl(), {
             transports: ['websocket', 'polling'],
             auth: { token: this.token },
             reconnection: true,

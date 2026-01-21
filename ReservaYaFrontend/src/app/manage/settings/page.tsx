@@ -1,4 +1,5 @@
 'use client';
+import { getApiUrl } from '@/lib/api';
 
 import { useState, useEffect } from 'react';
 import { ManageLayout } from '@/components/manage/ManageLayout';
@@ -87,10 +88,10 @@ export default function ManageSettings() {
 
 
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+            const apiUrl = getApiUrl();
 
             // Fetch restaurant settings
-            const settingsRes = await fetch(`${API_URL}/restaurant/settings`, {
+            const settingsRes = await fetch(`${apiUrl}/restaurant/settings`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -113,7 +114,7 @@ export default function ManageSettings() {
 
 
             // Fetch tables for real-time status
-            const tablesRes = await fetch(`${API_URL}/restaurant/layout`, {
+            const tablesRes = await fetch(`${apiUrl}/restaurant/layout`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -210,8 +211,8 @@ export default function ManageSettings() {
         }
 
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
-            const res = await fetch(`${API_URL}/restaurant/settings`, {
+            const apiUrl = getApiUrl();
+            const res = await fetch(`${apiUrl}/restaurant/settings`, {
                 method: 'PATCH',
                 headers: {
                     'Authorization': `Bearer ${token}`,

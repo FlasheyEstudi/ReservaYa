@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { OrderItemStatus } from '@prisma/client';
 import { db } from '@/lib/db';
 import { authenticateToken, requireRole } from '@/lib/middleware';
 import { CreateOrderSchema } from '@/lib/validation';
@@ -109,14 +110,14 @@ export async function POST(request: NextRequest) {
           menuItemId: item.menu_item_id,
           quantity: item.quantity,
           notes: item.notes || '',
-          status: 'pending',
+          status: OrderItemStatus.pending,
           station: menuItem.station || 'kitchen' // Default to kitchen if null
         };
       });
 
-      await tx.orderItem.createMany({
-        data: orderItemsToCreate
-      });
+      await Promise.all(orderItemsToCreate.map(data =>
+        tx.orderItem.create({ data })
+      ));
 
       // Update table status to occupied
       await tx.table.update({
@@ -214,13 +215,17 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const table_id = searchParams.get('table_id');
+    const destination = searchParams.get('destination'); // kitchen or bar
 
     // Build where clause based on user role
     let whereClause: any = {
       restaurantId: user.rid
     };
 
-    if (status) {
+    // Map 'active' status to 'open' for compatibility
+    if (status === 'active') {
+      whereClause.status = 'open';
+    } else if (status) {
       whereClause.status = status;
     }
 
@@ -228,8 +233,19 @@ export async function GET(request: NextRequest) {
       whereClause.tableId = table_id;
     }
 
-    // Waiters can only see their own orders
-    if (user.role === 'waiter') {
+    // If destination is specified, only include orders that have items for that station
+    if (destination) {
+      whereClause.orderItems = {
+        some: {
+          station: destination,
+          status: { in: ['pending', 'cooking'] } // Only pending/cooking items
+        }
+      };
+    }
+
+    // Waiters can only see their own orders, UNLESS they are querying a specific table
+    // This allows multi-waiter collaboration on the same table
+    if (user.role === 'waiter' && !table_id) {
       whereClause.waiterId = user.uid;
     }
 
@@ -237,6 +253,7 @@ export async function GET(request: NextRequest) {
       where: whereClause,
       include: {
         orderItems: {
+          where: destination ? { station: destination } : undefined, // Filter items by station
           include: {
             menuItem: true
           }
