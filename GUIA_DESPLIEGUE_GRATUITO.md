@@ -15,8 +15,10 @@ Supabase es la alternativa más robusta y fácil.
 5.  Ve a **Project Settings** (icono de engranaje ⚙️) -> **Database**.
 6.  Baja a la sección **Connection parameters** -> **Connection String**.
 7.  Cambia a la pestaña **"URI"** y asegúrate de que **"Mode"** esté en **"Session"** (Puerto 5432).
-8.  Copia la cadena entera. Se verá como: `postgresql://postgres.[ref]:[password]@aws-0-us-east-1.pooler.supabase.com:5432/postgres`
-    *   *OJO*: Tienes que reemplazar `[password]` manualmnete con la contraseña que creaste en el paso 3.
+8.  Copia la cadena entera. Se verá como: `postgresql://postgres.[ref]:[password]@aws-0-us-east-1.pooler.supabase.com:6543/postgres`
+    *   **IMPORTANTE**: Cambia el puerto `:6543` por `:5432` para que funcione en Render.
+    *   Reemplaza `[password]` con tu contraseña real.
+    *   Al final, tu URL debe verse así: `...pooler.supabase.com:5432/postgres?pgbouncer=true`
 
 ## 2. Backend y Socket - Render.com
 Render es la mejor alternativa gratuita a Railway. Su plan "Free" permite alojar servicios web.
