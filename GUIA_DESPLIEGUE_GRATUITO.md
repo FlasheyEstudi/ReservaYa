@@ -2,13 +2,21 @@
 
 Esta arquitectura utiliza los mejores servicios gratuitos disponibles para mantener tu aplicación **ReservaYa** funcionando 24/7 sin costo inicial.
 
-## 1. Base de Datos (PostgreSQL) - Neon.tech
-Neon ofrece una capa gratuita generosa (3GB) y perfecta para Postgres.
+## 1. Base de Datos (PostgreSQL) - Supabase
+Supabase es la alternativa más robusta y fácil.
 
-1.  Ve a [Neon.tech](https://neon.tech) y regístrate.
-2.  Crea un nuevo proyecto llamado `ReservaYa`.
-3.  Copia la **Connection String** (se ve como `postgresql://usuario:pass@ep-xyz.aws.neon.tech/neondb?sslmode=require`).
-4.  Esta URL será tu `DATABASE_URL`.
+1.  Ve a [Supabase.com](https://supabase.com) -> "Start your project" -> Regístrate.
+2.  **New Project** -> Selecciona una organización.
+3.  Configura:
+    *   **Name**: `ReservaYa`
+    *   **Database Password**: **¡Escríbela y GUÁRDALA!** (No podrás verla después).
+    *   **Region**: `East US (North Virginia)` (Mejor latencia si usas Render en US).
+4.  Dale a **Create new project**. Espera unos minutos a que se configure.
+5.  Ve a **Project Settings** (icono de engranaje ⚙️) -> **Database**.
+6.  Baja a la sección **Connection parameters** -> **Connection String**.
+7.  Cambia a la pestaña **"URI"** y asegúrate de que **"Mode"** esté en **"Session"** (Puerto 5432).
+8.  Copia la cadena entera. Se verá como: `postgresql://postgres.[ref]:[password]@aws-0-us-east-1.pooler.supabase.com:5432/postgres`
+    *   *OJO*: Tienes que reemplazar `[password]` manualmnete con la contraseña que creaste en el paso 3.
 
 ## 2. Backend y Socket - Render.com
 Render es la mejor alternativa gratuita a Railway. Su plan "Free" permite alojar servicios web.
