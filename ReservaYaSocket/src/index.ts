@@ -7,7 +7,11 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
     cors: {
-        origin: ["http://localhost:3000", "http://localhost:3001", "http://192.168.0.107:3000", "http://192.168.0.107:3001", process.env.FRONTEND_URL || ""],
+        origin: [
+            "http://localhost:3000",
+            "http://localhost:3001",
+            process.env.FRONTEND_URL || "*" // Permitir flexible en producción o definir URL exacta
+        ],
         methods: ["GET", "POST"],
         credentials: true
     }
@@ -16,7 +20,7 @@ const io = new Server(httpServer, {
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
-const PORT = 3002;
+const PORT = process.env.PORT || 3002;
 
 // Health check
 app.get('/health', (req, res) => {
