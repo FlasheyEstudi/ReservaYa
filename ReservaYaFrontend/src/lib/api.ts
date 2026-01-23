@@ -1,40 +1,54 @@
 'use client';
 
 /**
- * Returns the API base URL dynamically based on the browser's hostname.
- * - If accessed via localhost, uses localhost:3000
- * - If accessed via IP (e.g., 192.168.x.x), uses that same IP:3000
+ * Returns the API base URL.
+ * - Always prioritizes NEXT_PUBLIC_API_URL if set (for production)
+ * - Falls back to localhost for local development
  */
 export function getApiUrl(): string {
-    if (typeof window === 'undefined') {
-        // Server-side: use env variable or fallback
-        return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+    // Always check env var first - this is set at build time
+    if (process.env.NEXT_PUBLIC_API_URL) {
+        return process.env.NEXT_PUBLIC_API_URL;
     }
 
-    const hostname = window.location.hostname;
-
-    // If localhost, use localhost
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        return 'http://localhost:3000/api';
+    // Fallback for local development only
+    if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            return 'http://localhost:3000/api';
+        }
+        // For local network testing (e.g., 192.168.x.x)
+        if (hostname.match(/^192\.168\.\d+\.\d+$/)) {
+            return `http://${hostname}:3000/api`;
+        }
     }
 
-    // Otherwise, use the same hostname (IP) with backend port
-    return `http://${hostname}:3000/api`;
+    // Final fallback
+    return 'http://localhost:3000/api';
 }
 
 /**
- * Returns the Socket URL dynamically based on the browser's hostname.
+ * Returns the Socket URL.
+ * - Always prioritizes NEXT_PUBLIC_SOCKET_URL if set (for production)
+ * - Falls back to localhost for local development
  */
 export function getSocketUrl(): string {
-    if (typeof window === 'undefined') {
-        return process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3002';
+    // Always check env var first
+    if (process.env.NEXT_PUBLIC_SOCKET_URL) {
+        return process.env.NEXT_PUBLIC_SOCKET_URL;
     }
 
-    const hostname = window.location.hostname;
-
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        return 'http://localhost:3002';
+    // Fallback for local development only
+    if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            return 'http://localhost:3002';
+        }
+        if (hostname.match(/^192\.168\.\d+\.\d+$/)) {
+            return `http://${hostname}:3002`;
+        }
     }
 
-    return `http://${hostname}:3002`;
+    return 'http://localhost:3002';
 }
+
