@@ -10,45 +10,48 @@ Neon ofrece una capa gratuita generosa (3GB) y perfecta para Postgres.
 3.  Copia la **Connection String** (se ve como `postgresql://usuario:pass@ep-xyz.aws.neon.tech/neondb?sslmode=require`).
 4.  Esta URL será tu `DATABASE_URL`.
 
-## 2. Backend y Socket - Railway.app
-Railway es ideal para correr procesos de Node.js (tu API y tu Socket). Te dan $5.00 de crédito mensual (aprox 500 horas), pero si verificas tu cuenta, puedes extenderlo. *Alternativa: Render.com si prefieres.*
+## 2. Backend y Socket - Render.com
+Render es la mejor alternativa gratuita a Railway. Su plan "Free" permite alojar servicios web.
+*Nota*: En la versión gratuita, los servicios se "duermen" si no se usan por 15 minutos y tardan unos segundos en despertar.
 
-### A. Preparar Repositorio
-Asegúrate de que todo tu código esté en **GitHub**. Railway se conecta a tu repositorio.
+1.  Ve a [Render.com](https://render.com) y regístrate con GitHub.
+2.  Haz clic en **"New +"** -> **"Web Service"**.
 
-### B. Desplegar ReservaYaSocket
-1.  En Railway, "New Project" -> "Deploy from GitHub repo".
-2.  Selecciona tu repo `ReservaYa`.
-3.  Railway detectará múltiples carpetas. Configura:
+### A. Desplegar ReservaYaSocket
+1.  Conecta tu repositorio `ReservaYa`.
+2.  Configura:
+    *   **Name**: `reservaya-socket`
     *   **Root Directory**: `ReservaYaSocket`
-    *   **Build Command**: `tsc` (o `npm run build` si añades ese script que ejecute tsc)
-    *   **Start Command**: `node dist/index.js`
-4.  **Variables de Entorno** (Variables tab):
-    *   `PORT`: `3002` (Railway lo inyectará automáticamente, pero es bueno definirlo).
-    *   `SOCKET_SECRET`: `tu_secreto_super_seguro`
-    *   `FRONTEND_URL`: `https://tu-proyecto-vercel.app` (Lo pondrás después de desplegar Vercel).
-5.  Railway generará una URL pública (ej: `socket-production.up.railway.app`). **Guárdala**.
-
-### C. Desplegar ReservaYaBackend (API)
-Tu backend es Next.js, pero lo usaremos como API.
-1.  En el mismo proyecto de Railway, "New Service" -> GitHub Repo.
-2.  Selecciona el repo `ReservaYa`.
-3.  Configura:
-    *   **Root Directory**: `ReservaYaBackend`
-    *   **Build Command**: `npm run build`
+    *   **Environment**: `Node`
+    *   **Build Command**: `npm install && npm run build`
     *   **Start Command**: `npm start`
-4.  **Variables de Entorno**:
-    *   `DATABASE_URL`: (La de Neon del paso 1)
-    *   `JWT_SECRET`: `tu_string_secreto`
-    *   `PAGADITO_UID`: (Tus credenciales reales)
-    *   `PAGADITO_WSK`: (Tus credenciales reales)
-    *   `PAGADITO_MODE`: `live`
-    *   `NEXT_PUBLIC_API_URL`: (La URL que Railway te generará para este servicio, ej: `https://backend-production.up.railway.app/api`)
-    *   `NEXT_PUBLIC_SOCKET_URL`: (La URL del Socket del paso anterior).
-5.  Railway generará una URL pública. **Guárdala**.
+    *   **Plan**: Free
+3.  **Environment Variables** (Abajo del todo):
+    *   `PORT`: `3002` (Aunque Render usa el suyo propio, es bueno dejarlo).
+    *   `SOCKET_SECRET`: `tu_secreto_super_seguro`
+    *   `FRONTEND_URL`: `https://tu-proyecto-vercel.app` (Lo actualizarás después).
+4.  Dale a **Create Web Service**.
+5.  Copia la URL que te dan (ej: `https://reservaya-socket.onrender.com`).
 
-> **Nota**: Después de configurar la DB, ve a la pestaña "Settings" -> "Deploy" y busca "Deploy Trigger". Asegúrate de que `prisma db push` o `migrations` se ejecuten, o hazlo manualmente desde tu local apuntando a la DB de producción.
-> *Recomendado*: Desde tu terminal local, ejecuta `DATABASE_URL="tu_url_neon" npx prisma db push` (dentro de la carpeta Backend) para crear las tablas en Neon.
+### B. Desplegar ReservaYaBackend (API)
+1.  Vuelve al Dashboard y crea otro **"Web Service"** -> Repo `ReservaYa`.
+2.  Configura:
+    *   **Name**: `reservaya-backend`
+    *   **Root Directory**: `ReservaYaBackend`
+    *   **Environment**: `Node`
+    *   **Build Command**: `npm install && npx prisma db push && npm run build`
+        *   *IMPORTANTE*: El comando `npx prisma db push` aquí es el truco para que **se creen tus tablas en Neon automáticamente**.
+    *   **Start Command**: `npm start`
+    *   **Plan**: Free
+3.  **Environment Variables**:
+    *   `DATABASE_URL`: (Tu URL de Neon que empieza por `postgres://...`)
+    *   `JWT_SECRET`: `tu_string_secreto`
+    *   `PAGADITO_UID`: (Tus credenciales)
+    *   `PAGADITO_WSK`: (Tus credenciales)
+    *   `PAGADITO_MODE`: `live`
+    *   `NEXT_PUBLIC_SOCKET_URL`: (La URL del Socket de Render que copiaste antes).
+4.  Dale a **Create Web Service**.
+5.  Copia la URL de tu backend.
 
 ## 3. Frontend - Vercel
 Vercel es el creador de Next.js, es el mejor lugar para el frontend.
@@ -58,15 +61,15 @@ Vercel es el creador de Next.js, es el mejor lugar para el frontend.
 3.  Configura:
     *   **Root Directory**: `ReservaYaFrontend` - Vercel detectará que es Next.js.
 4.  **Variables de Entorno**:
-    *   `NEXT_PUBLIC_API_URL`: La URL de tu Backend en Railway + `/api` (ej: `https://...railway.app/api`)
-    *   `NEXT_PUBLIC_SOCKET_URL`: La URL de tu Socket en Railway.
+    *   `NEXT_PUBLIC_API_URL`: La URL de tu Backend en Render + `/api` (ej: `https://reservaya-backend.onrender.com/api`)
+    *   `NEXT_PUBLIC_SOCKET_URL`: La URL de tu Socket en Render.
 5.  Despliega.
 6.  Obtendrás tu dominio `https://reservaya-frontend.vercel.app`.
 
-## 4. Conexión Final
-1.  Vuelve a **Railway** -> **ReservaYaSocket** -> Variables.
-2.  Actualiza `FRONTEND_URL` con tu nuevo dominio de Vercel (`https://reservaya-frontend.vercel.app`).
-3.  Railway redeployará automáticamente.
+## 4. Conexión Final (CORS)
+1.  Vuelve a **Render** -> **ReservaYaSocket** -> Environment.
+2.  Edita `FRONTEND_URL` con tu nuevo dominio de Vercel.
+3.  Render redeployará automáticamente.
 
 ---
 
