@@ -1,0 +1,928 @@
+\documentclass[11pt,a4paper]{article}
+
+% Paquetes modernos
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage[margin=1.8cm, top=1.5cm, bottom=1.5cm]{geometry}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, positioning, shadows, calc, backgrounds}
+\usepackage{fontawesome5}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\usepackage{hyperref}
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}
+\usepackage{multicol}
+\usepackage{microtype}
+
+% Fuentes ultra modernas
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+
+% Paleta de colores con accent predominante (branding ReservaYa)
+\definecolor{dark}{RGB}{15, 23, 42}
+\definecolor{accent}{RGB}{99, 102, 241}
+\definecolor{accentdark}{RGB}{79, 70, 229}
+\definecolor{accentlight}{RGB}{139, 142, 255}
+\definecolor{lime}{RGB}{132, 204, 22}
+\definecolor{lightbg}{RGB}{248, 250, 252}
+\definecolor{border}{RGB}{226, 232, 240}
+\definecolor{textgray}{RGB}{100, 116, 139}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=accent,
+    urlcolor=accent,
+    pdfborder={0 0 0}
+}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+
+\begin{document}
+
+% ============================================
+% PORTADA ELEGANTE Y MINIMALISTA (MEJORADA)
+% ============================================
+\begin{tikzpicture}[remember picture, overlay]
+    % Fondo blanco limpio
+    \fill[white] (current page.north west) rectangle (current page.south east);
+    
+    % Banda lateral izquierda con gradiente mejorado
+    \shade[left color=accent, right color=accentdark] (current page.north west) rectangle ([xshift=0.6cm]current page.south west);
+    
+    % Elemento geométrico superior derecho - más suave
+    \fill[lime, opacity=0.08] ([xshift=-8cm, yshift=-3cm]current page.north east) circle (7cm);
+    \fill[sky, opacity=0.06] ([xshift=-4cm, yshift=-6cm]current page.north east) circle (9cm);
+    \fill[purple, opacity=0.04] ([xshift=-10cm, yshift=-8cm]current page.north east) circle (5cm);
+\end{tikzpicture}
+
+\vspace*{2.5cm}
+
+\hspace{2cm}
+\begin{minipage}{13cm}
+    {\fontsize{64}{70}\selectfont\bfseries\color{dark}ReservaYa}
+    
+    \vspace{0.8cm}
+    
+    {\fontsize{22}{26}\selectfont\color{accent}\bfseries Plataforma SaaS para Restaurantes}
+    
+    \vspace{1.2cm}
+    
+    {\LARGE\color{textgray} Sistema integral que digitaliza tu operación completa:}
+    
+    {\LARGE\color{textgray} desde la reserva hasta el pago.}
+    
+    \vspace{0.6cm}
+    
+    \begin{tikzpicture}
+        \foreach \icon/\text/\col/\x in {
+            \faCalendarCheck/Reservas/accent/0,
+            \faConciergeBell/POS/accent/3.5,
+            \faFire/Cocina/accentdark/6.5,
+            \faChartLine/Analytics/lime/9.5
+        } {
+            \node[circle, fill=\col, text=white, minimum size=0.8cm] at (\x,0) {\small\icon};
+            \node[below, font=\small, color=textgray] at (\x,-0.6) {\text};
+        }
+    \end{tikzpicture}
+\end{minipage}
+
+\vspace{6cm}
+
+\hspace{2cm}
+\begin{tikzpicture}
+    \node[
+        rectangle,
+        fill=accent,
+        text=white,
+        rounded corners=0.4cm,
+        inner sep=16pt,
+        font=\LARGE\bfseries,
+        drop shadow={shadow xshift=0pt, shadow yshift=2pt, opacity=0.2}
+    ] {\faRocket\ Comienza Gratis • Sin Tarjeta de Crédito};
+\end{tikzpicture}
+
+\vfill
+
+\hspace{2cm}
+{\footnotesize\color{textgray} Managua, Nicaragua • +505 8601 1727 • contacto@reservaya.ni}
+
+\newpage
+
+% ============================================
+% PROPUESTA DE VALOR (MEJORADA)
+% ============================================
+
+\begin{tikzpicture}[remember picture, overlay]
+    \fill[lightbg] (current page.north west) rectangle (current page.south east);
+    % Banda decorativa superior
+    \fill[accent, opacity=0.03] ([yshift=-4cm]current page.north west) rectangle ([yshift=-11cm]current page.north east);
+\end{tikzpicture}
+
+\vspace*{1.2cm}
+
+{\fontsize{40}{44}\selectfont\bfseries\color{dark} ¿Por qué ReservaYa?}
+
+\vspace{0.4cm}
+
+{\LARGE\color{textgray} La solución integral que revoluciona tu restaurante}
+
+\vspace{2.5cm}
+
+% Grid mejorado de beneficios
+\begin{center}
+\begin{tabular}{p{8.5cm}p{8.5cm}}
+    % Fila 1
+    \begin{tcolorbox}[
+        enhanced,
+        colback=white,
+        colframe=accent,
+        boxrule=1pt,
+        arc=0.6cm,
+        left=18pt,
+        right=18pt,
+        top=18pt,
+        bottom=18pt,
+        height=5.5cm,
+        drop shadow={shadow xshift=0pt, shadow yshift=2pt, opacity=0.08}
+    ]
+        {\fontsize{40}{44}\selectfont\color{accent}\faChartLine}
+        
+        \vspace{0.4cm}
+        
+        {\LARGE\bfseries\color{dark} Incrementa Ventas}
+        
+        \vspace{0.3cm}
+        
+        {\large\color{textgray} Optimiza ocupación de mesas y reduce tiempos muertos. Mayor rotación significa más ingresos.}
+    \end{tcolorbox}
+    &
+    \begin{tcolorbox}[
+        enhanced,
+        colback=white,
+        colframe=lime,
+        boxrule=1pt,
+        arc=0.6cm,
+        left=18pt,
+        right=18pt,
+        top=18pt,
+        bottom=18pt,
+        height=5.5cm,
+        drop shadow={shadow xshift=0pt, shadow yshift=2pt, opacity=0.08}
+    ]
+        {\fontsize{40}{44}\selectfont\color{lime!80!black}\faClock}
+        
+        \vspace{0.4cm}
+        
+        {\LARGE\bfseries\color{dark} Ahorra Tiempo}
+        
+        \vspace{0.3cm}
+        
+        {\large\color{textgray} Automatiza tareas repetitivas. Recupera hasta 15 horas semanales de administración.}
+    \end{tcolorbox}
+    \\[0.6cm]
+    
+    % Fila 2
+    \begin{tcolorbox}[
+        enhanced,
+        colback=white,
+        colframe=accentdark,
+        boxrule=1pt,
+        arc=0.6cm,
+        left=18pt,
+        right=18pt,
+        top=18pt,
+        bottom=18pt,
+        height=5.5cm,
+        drop shadow={shadow xshift=0pt, shadow yshift=2pt, opacity=0.08}
+    ]
+        {\fontsize{40}{44}\selectfont\color{accentdark}\faUsers}
+        
+        \vspace{0.4cm}
+        
+        {\LARGE\bfseries\color{dark} Más Clientes}
+        
+        \vspace{0.3cm}
+        
+        {\large\color{textgray} Atrae comensales que buscan restaurantes online. Reservas 24/7 automáticas.}
+    \end{tcolorbox}
+    &
+    \begin{tcolorbox}[
+        enhanced,
+        colback=white,
+        colframe=accentlight,
+        boxrule=1pt,
+        arc=0.6cm,
+        left=18pt,
+        right=18pt,
+        top=18pt,
+        bottom=18pt,
+        height=5.5cm,
+        drop shadow={shadow xshift=0pt, shadow yshift=2pt, opacity=0.08}
+    ]
+        {\fontsize{40}{44}\selectfont\color{accentlight!80!accent}\faMobileAlt}
+        
+        \vspace{0.4cm}
+        
+        {\LARGE\bfseries\color{dark} 100\% Digital}
+        
+        \vspace{0.3cm}
+        
+        {\large\color{textgray} Gestiona desde cualquier lugar y dispositivo. Control total en tiempo real.}
+    \end{tcolorbox}
+\end{tabular}
+\end{center}
+
+\vspace{2cm}
+
+\begin{center}
+\begin{tcolorbox}[
+    enhanced,
+    width=16cm,
+    colback=dark,
+    colframe=dark,
+    boxrule=0pt,
+    arc=0.6cm,
+    drop shadow={shadow xshift=0pt, shadow yshift=3pt, opacity=0.15}
+]
+    \centering
+    {\Huge\bfseries\color{white} Plan GRATIS disponible}
+    
+    \vspace{0.3cm}
+    
+    {\Large\color{white!85} Sin tarjeta de crédito • Sin compromisos • Siempre gratis}
+\end{tcolorbox}
+\end{center}
+
+\newpage
+
+% ============================================
+% FUNCIONALIDADES - DISEÑO MEJORADO
+% ============================================
+
+\begin{tikzpicture}[remember picture, overlay]
+    \fill[white] (current page.north west) rectangle (current page.south east);
+\end{tikzpicture}
+
+\vspace*{1cm}
+
+{\fontsize{40}{44}\selectfont\bfseries\color{dark} Todo lo que necesitas}
+
+\vspace{0.4cm}
+
+{\LARGE\color{textgray} Una plataforma. Infinitas posibilidades.}
+
+\vspace{1.3cm}
+
+% Layout en dos columnas mejorado
+\begin{multicols}{2}
+\setlength{\columnsep}{1.5cm}
+
+\noindent
+\begin{tcolorbox}[
+    enhanced,
+    colback=accent!8,
+    colframe=accent,
+    boxrule=2.5pt,
+    arc=0.4cm,
+    left=12pt,
+    top=10pt,
+    bottom=10pt
+]
+    {\Large\bfseries\color{accent}\faCalendarCheck\ Sistema de Reservas}
+\end{tcolorbox}
+
+\vspace{0.3cm}
+
+{\small\color{textgray}
+\begin{itemize}[leftmargin=*, itemsep=3pt]
+    \item Reservas online automáticas 24/7
+    \item Check-in con código QR
+    \item Confirmaciones por email
+    \item Gestión de listas de espera
+    \item Recordatorios automáticos
+\end{itemize}
+}
+
+\vspace{1cm}
+
+\noindent
+\begin{tcolorbox}[
+    enhanced,
+    colback=accentdark!10,
+    colframe=accentdark,
+    boxrule=2.5pt,
+    arc=0.4cm,
+    left=12pt,
+    top=10pt,
+    bottom=10pt
+]
+    {\Large\bfseries\color{accentdark}\faConciergeBell\ Punto de Venta (POS)}
+\end{tcolorbox}
+
+\vspace{0.3cm}
+
+{\small\color{textgray}
+\begin{itemize}[leftmargin=*, itemsep=3pt]
+    \item Mapa visual de mesas en tiempo real
+    \item Órdenes digitales a cocina/bar
+    \item Facturación completa
+    \item Control de propinas y descuentos
+    \item Múltiples métodos de pago
+\end{itemize}
+}
+
+\vspace{1cm}
+
+\noindent
+\begin{tcolorbox}[
+    enhanced,
+    colback=accent!8,
+    colframe=accent,
+    boxrule=2.5pt,
+    arc=0.4cm,
+    left=12pt,
+    top=10pt,
+    bottom=10pt
+]
+    {\Large\bfseries\color{accent}\faQrcode\ Menú Digital \& QR}
+\end{tcolorbox}
+
+\vspace{0.3cm}
+
+{\small\color{textgray}
+\begin{itemize}[leftmargin=*, itemsep=3pt]
+    \item Menú QR para clientes
+    \item Gestión de categorías y fotos
+    \item Control de disponibilidad (86'd)
+    \item Modificadores y opciones
+    \item Actualización instantánea
+\end{itemize}
+}
+
+\vspace{1cm}
+
+\noindent
+\begin{tcolorbox}[
+    enhanced,
+    colback=lime!12,
+    colframe=lime!80!black,
+    boxrule=2.5pt,
+    arc=0.4cm,
+    left=12pt,
+    top=10pt,
+    bottom=10pt
+]
+    {\Large\bfseries\color{lime!80!black}\faFire\ Cocina Digital (KDS)}
+\end{tcolorbox}
+
+\vspace{0.3cm}
+
+{\small\color{textgray}
+\begin{itemize}[leftmargin=*, itemsep=3pt]
+    \item Pantalla digital para cocina/bar
+    \item Órdenes en tiempo real
+    \item Estados: pending → cooking → ready
+    \item Tiempos de preparación
+    \item Sin errores de comunicación
+\end{itemize}
+}
+
+\columnbreak
+
+\noindent
+\begin{tcolorbox}[
+    enhanced,
+    colback=accentdark!10,
+    colframe=accentdark,
+    boxrule=2.5pt,
+    arc=0.4cm,
+    left=12pt,
+    top=10pt,
+    bottom=10pt
+]
+    {\Large\bfseries\color{accentdark}\faChartPie\ Reportes \& Analytics}
+\end{tcolorbox}
+
+\vspace{0.3cm}
+
+{\small\color{textgray}
+\begin{itemize}[leftmargin=*, itemsep=3pt]
+    \item Dashboard en tiempo real
+    \item Platos más populares
+    \item Análisis de ocupación de mesas
+    \item Proyecciones de ventas
+    \item Exportación de datos
+\end{itemize}
+}
+
+\vspace{1cm}
+
+\noindent
+\begin{tcolorbox}[
+    enhanced,
+    colback=accent!8,
+    colframe=accent,
+    boxrule=2.5pt,
+    arc=0.4cm,
+    left=12pt,
+    top=10pt,
+    bottom=10pt
+]
+    {\Large\bfseries\color{accent}\faBoxes\ Inventario Inteligente}
+\end{tcolorbox}
+
+\vspace{0.3cm}
+
+{\small\color{textgray}
+\begin{itemize}[leftmargin=*, itemsep=3pt]
+    \item Control automático de stock
+    \item Alertas de inventario bajo
+    \item Gestión de proveedores
+    \item Historial de movimientos
+    \item Cálculo de costos y márgenes
+\end{itemize}
+}
+
+\vspace{1cm}
+
+\noindent
+\begin{tcolorbox}[
+    enhanced,
+    colback=accentdark!10,
+    colframe=accentdark,
+    boxrule=2.5pt,
+    arc=0.4cm,
+    left=12pt,
+    top=10pt,
+ bottom=10pt
+]
+    {\Large\bfseries\color{accentdark}\faUsers\ CRM \& Clientes}
+\end{tcolorbox}
+
+\vspace{0.3cm}
+
+{\small\color{textgray}
+\begin{itemize}[leftmargin=*, itemsep=3pt]
+    \item Base de datos completa
+    \item Programa de lealtad/fidelidad
+    \item Segmentación VIP
+    \item Historial de visitas y preferencias
+    \item Gestión de alergias y notas
+\end{itemize}
+}
+
+\vspace{1cm}
+
+\noindent
+\begin{tcolorbox}[
+    enhanced,
+    colback=accent!8,
+    colframe=accent,
+    boxrule=2.5pt,
+    arc=0.4cm,
+    left=12pt,
+    top=10pt,
+    bottom=10pt
+]
+    {\Large\bfseries\color{accent}\faMegaphone\ Marketing}
+\end{tcolorbox}
+
+\vspace{0.3cm}
+
+{\small\color{textgray}
+\begin{itemize}[leftmargin=*, itemsep=3pt]
+    \item Campañas de email automatizadas
+    \item Promociones y ofertas
+    \item Segmentación de audiencia
+    \item Análisis de conversión
+    \item Integración con redes sociales
+\end{itemize}
+}
+
+\end{multicols}
+
+\newpage
+
+% ============================================
+% PLANES - TABLA MEJORADA
+% ============================================
+
+\begin{tikzpicture}[remember picture, overlay]
+    \fill[lightbg] (current page.north west) rectangle (current page.south east);
+\end{tikzpicture}
+
+\vspace*{1cm}
+
+{\fontsize{40}{44}\selectfont\bfseries\color{dark} Planes transparentes}
+
+\vspace{0.4cm}
+
+{\LARGE\color{textgray} Sin límites artificiales. Crece sin restricciones.}
+
+\vspace{0.8cm}
+
+\begin{center}
+{\large\color{textgray}\faInfinity\ Mesas ilimitadas • Reservas ilimitadas en todos los planes}
+\end{center}
+
+\vspace{1.2cm}
+
+% Tabla mejorada
+\begin{center}
+\renewcommand{\arraystretch}{2}
+\begin{tabular}{|>{\raggedright}p{4.2cm}|c|c|c|c|}
+\hline
+\rowcolor{dark}
+\textcolor{white}{\large\textbf{Característica}} & 
+\textcolor{white}{\large\textbf{Gratis}} & 
+\textcolor{white}{\large\textbf{Starter}} & 
+\textcolor{white}{\large\textbf{Profesional}} & 
+\textcolor{white}{\large\textbf{Empresarial}} \\
+\hline
+\rowcolor{white}
+\textbf{Precio mensual} & 
+{\huge\bfseries\color{lime}\$0} & 
+{\huge\bfseries\color{accent}\$19} & 
+{\huge\bfseries\color{accent}\$49} & 
+{\huge\bfseries\color{accentdark}\$99} \\
+\hline
+\rowcolor{lightbg}
+Precio anual (ahorro) & 
+--- & 
+{\small\$190 (-17\%)} & 
+{\small\$490 (-17\%)} & 
+{\small\$990 (-17\%)} \\
+\hline
+\rowcolor{white}
+\textbf{Mesas} & {\Large\faInfinity} & {\Large\faInfinity} & {\Large\faInfinity} & {\Large\faInfinity} \\
+\hline
+\rowcolor{lightbg}
+\textbf{Reservas/mes} & {\Large\faInfinity} & {\Large\faInfinity} & {\Large\faInfinity} & {\Large\faInfinity} \\
+\hline
+\rowcolor{white}
+Empleados & 3 & 5 & 15 & {\Large\faInfinity} \\
+\hline
+\rowcolor{lightbg}
+Sistema POS & {\large\color{lime}\faCheckCircle} & {\large\color{lime}\faCheckCircle} & {\large\color{lime}\faCheckCircle} & {\large\color{lime}\faCheckCircle} \\
+\hline
+\rowcolor{white}
+Menú QR clientes & {\large\color{textgray}\faTimesCircle} & {\large\color{lime}\faCheckCircle} & {\large\color{lime}\faCheckCircle} & {\large\color{lime}\faCheckCircle} \\
+\hline
+\rowcolor{lightbg}
+Reportes & Básicos & {\large\color{lime}\faCheckCircle} & Avanzados & Avanzados \\
+\hline
+\rowcolor{white}
+CRM Clientes & {\large\color{textgray}\faTimesCircle} & {\large\color{lime}\faCheckCircle} & {\large\color{lime}\faCheckCircle} & {\large\color{lime}\faCheckCircle} \\
+\hline
+\rowcolor{lightbg}
+Inventario & {\large\color{textgray}\faTimesCircle} & {\large\color{textgray}\faTimesCircle} & {\large\color{lime}\faCheckCircle} & {\large\color{lime}\faCheckCircle} \\
+\hline
+\rowcolor{white}
+Marketing & {\large\color{textgray}\faTimesCircle} & {\large\color{textgray}\faTimesCircle} & {\large\color{lime}\faCheckCircle} & {\large\color{lime}\faCheckCircle} \\
+\hline
+\rowcolor{lightbg}
+Multi-sucursal & {\large\color{textgray}\faTimesCircle} & {\large\color{textgray}\faTimesCircle} & {\large\color{textgray}\faTimesCircle} & {\large\color{lime}\faCheckCircle} \\
+\hline
+\rowcolor{white}
+API Access & {\large\color{textgray}\faTimesCircle} & {\large\color{textgray}\faTimesCircle} & {\large\color{textgray}\faTimesCircle} & {\large\color{lime}\faCheckCircle} \\
+\hline
+\rowcolor{accent!10}
+\textbf{Prueba gratis} & 
+--- & 
+{\bfseries 14 días} & 
+{\bfseries 14 días} & 
+{\bfseries 14 días} \\
+\hline
+\end{tabular}
+\end{center}
+
+\vspace{1.5cm}
+
+\begin{center}
+\begin{tikzpicture}
+    \node[
+        rectangle,
+        fill=accent,
+        text=white,
+        rounded corners=0.4cm,
+        inner sep=18pt,
+        font=\Huge\bfseries,
+        drop shadow={shadow xshift=0pt, shadow yshift=2pt, opacity=0.15}
+    ] {Comienza GRATIS hoy mismo};
+\end{tikzpicture}
+\end{center}
+
+\vspace{0.6cm}
+
+{\centering\Large\color{textgray} Actualiza cuando lo necesites • Cancela cuando quieras • Sin permanencia\par}
+
+\newpage
+
+% ============================================
+% ANTES VS DESPUÉS - MEJORADO
+% ============================================
+
+\begin{tikzpicture}[remember picture, overlay]
+    % Mitad izquierda
+    \fill[dark!3] (current page.north west) rectangle (current page.center);
+    % Mitad derecha
+    \fill[lime!8] (current page.north east) rectangle (current page.south);
+    % Línea divisoria con gradiente
+    \shade[left color=accent, right color=lime] ([xshift=-0.15cm]current page.north) rectangle ([xshift=0.15cm]current page.south);
+\end{tikzpicture}
+
+\vspace*{1.5cm}
+
+% Columna ANTES
+\begin{minipage}[t]{0.47\textwidth}
+    \centering
+    {\fontsize{36}{40}\selectfont\bfseries\color{textgray} Antes}
+    
+    \vspace{0.4cm}
+    
+    {\Large\color{textgray}\textit{Gestión tradicional}}
+    
+    \vspace{1.5cm}
+    
+    \raggedright
+    \begin{itemize}[leftmargin=*, itemsep=15pt]
+        \item[\color{textgray}\faTimesCircle] Llamadas de reservas todo el día
+        \item[\color{textgray}\faTimesCircle] Confusión con disponibilidad
+        \item[\color{textgray}\faTimesCircle] Órdenes en papel o cuadernos
+        \item[\color{textgray}\faTimesCircle] Inventario desorganizado
+        \item[\color{textgray}\faTimesCircle] Cálculos manuales de propinas
+        \item[\color{textgray}\faTimesCircle] Comunicación lenta con cocina
+        \item[\color{textgray}\faTimesCircle] Cero analíticas de negocio
+        \item[\color{textgray}\faTimesCircle] Tiempo perdido en admin
+    \end{itemize}
+\end{minipage}
+\hfill
+% Columna DESPUÉS
+\begin{minipage}[t]{0.47\textwidth}
+    \centering
+    {\fontsize{36}{40}\selectfont\bfseries\color{lime!80!black} Con ReservaYa}
+    
+    \vspace{0.4cm}
+    
+    {\Large\color{dark!80}\textit{Gestión del futuro}}
+    
+    \vspace{1.5cm}
+    
+    \raggedright
+    \begin{itemize}[leftmargin=*, itemsep=15pt]
+        \item[\color{lime!80!black}\faCheckCircle] Reservas automáticas 24/7
+        \item[\color{lime!80!black}\faCheckCircle] Mapa visual en tiempo real
+        \item[\color{lime!80!black}\faCheckCircle] Órdenes 100\% digitales
+        \item[\color{lime!80!black}\faCheckCircle] Stock controlado al minuto
+        \item[\color{lime!80!black}\faCheckCircle] Todo calculado automáticamente
+        \item[\color{lime!80!black}\faCheckCircle] Comunicación instantánea
+        \item[\color{lime!80!black}\faCheckCircle] Reportes y métricas en vivo
+        \item[\color{lime!80!black}\faCheckCircle] Enfócate en lo importante
+    \end{itemize}
+\end{minipage}
+
+\vspace{3.5cm}
+
+\begin{center}
+\begin{tcolorbox}[
+    enhanced,
+    width=15cm,
+    colback=white,
+    colframe=accent,
+    boxrule=3pt,
+    arc=0.6cm,
+    drop shadow={shadow xshift=0pt, shadow yshift=3pt, opacity=0.12}
+]
+    \centering
+    {\Huge\bfseries\color{dark} El resultado:}
+    
+    \vspace{0.5cm}
+    
+    {\LARGE\color{accent} Más clientes • Mejor servicio • Mayor rentabilidad}
+    
+    \vspace{0.3cm}
+    
+    {\large\color{textgray} Tu equipo trabajará mejor. Tus clientes estarán más felices.}
+\end{tcolorbox}
+\end{center}
+
+\newpage
+
+% ============================================
+% PROCESO - TIMELINE MEJORADO
+% ============================================
+
+\begin{tikzpicture}[remember picture, overlay]
+    \fill[white] (current page.north west) rectangle (current page.south east);
+    \fill[accent, opacity=0.02] ([yshift=-6cm]current page.north west) rectangle ([yshift=-18cm]current page.north east);
+\end{tikzpicture}
+
+\vspace*{1.5cm}
+
+{\fontsize{40}{44}\selectfont\bfseries\color{dark} Comienza en 3 pasos simples}
+
+\vspace{0.5cm}
+
+{\LARGE\color{textgray} En menos de 48 horas estarás operando}
+
+\vspace{2.5cm}
+
+\begin{center}
+\begin{tikzpicture}[
+    step/.style={
+        rectangle,
+        rounded corners=0.5cm,
+        fill=white,
+        draw=accent,
+        line width=2.5pt,
+        minimum width=12.5cm,
+        minimum height=3.5cm,
+        align=center,
+        drop shadow={shadow xshift=0pt, shadow yshift=2pt, opacity=0.1}
+    },
+    number/.style={
+        circle,
+        fill=accent,
+        text=white,
+        font=\fontsize{32}{36}\selectfont\bfseries,
+        minimum size=2.2cm
+    }
+]
+
+% Paso 1
+\node[number] (n1) at (0,0) {1};
+\node[step, right=0.6cm of n1] (s1) {
+    {\LARGE\bfseries\color{dark} Regístrate gratis en 5 minutos} \\[0.4cm]
+    {\Large\color{textgray} Solo necesitas email y nombre de tu restaurante}
+};
+
+% Flecha
+\draw[->, line width=4pt, accent!60] ([yshift=-0.6cm]n1.south) -- ++(0,-1.8);
+
+% Paso 2
+\node[number, fill=accentdark] (n2) at (0,-6.5) {2};
+\node[step, draw=accentdark, right=0.6cm of n2] (s2) {
+    {\LARGE\bfseries\color{dark} Te ayudamos a configurar todo} \\[0.4cm]
+    {\Large\color{textgray} Menú, mesas, empleados. Capacitación incluida}
+};
+
+% Flecha
+\draw[->, line width=4pt, accentdark!60] ([yshift=-0.6cm]n2.south) -- ++(0,-1.8);
+
+% Paso 3
+\node[number, fill=lime!80!black] (n3) at (0,-13) {3};
+\node[step, draw=lime!80!black, right=0.6cm of n3] (s3) {
+    {\LARGE\bfseries\color{dark} ¡Listo para recibir clientes!} \\[0.4cm]
+    {\Large\color{textgray} Tu restaurante digitalizado y visible online}
+};
+
+\end{tikzpicture}
+\end{center}
+
+\vspace{2cm}
+
+\begin{center}
+\begin{tcolorbox}[
+    enhanced,
+    width=14cm,
+    colback=accent!8,
+    colframe=accent,
+    boxrule=2pt,
+    arc=0.5cm
+]
+    \centering
+    {\LARGE\bfseries\color{dark}\faShieldAlt\ Garantía de satisfacción}
+    
+    \vspace{0.4cm}
+    
+    {\large\color{textgray} Prueba sin riesgo. Si no te convence, cancela cuando quieras.}
+    
+    {\large\color{textgray} Sin preguntas. Sin complicaciones.}
+\end{tcolorbox}
+\end{center}
+
+\newpage
+
+% ============================================
+% CONTACTO - DISEÑO PREMIUM
+% ============================================
+
+\begin{tikzpicture}[remember picture, overlay]
+    % Gradiente mejorado
+    \shade[top color=accent, bottom color=accentdark, middle color=accent!90!accentdark] (current page.north west) rectangle (current page.south east);
+    
+    % Elementos decorativos suaves
+    \fill[white, opacity=0.06] ([xshift=12cm, yshift=-10cm]current page.north west) circle (9cm);
+    \fill[lime, opacity=0.12] ([xshift=-10cm, yshift=10cm]current page.south east) circle (11cm);
+    \fill[sky, opacity=0.08] ([xshift=-6cm, yshift=6cm]current page.south east) circle (7cm);
+\end{tikzpicture}
+
+\vspace*{2.5cm}
+
+\begin{center}
+    {\fontsize{52}{56}\selectfont\bfseries\color{white} ¿Listo para transformar}
+    
+    {\fontsize{52}{56}\selectfont\bfseries\color{white} tu restaurante?}
+    
+    \vspace{0.8cm}
+    
+    {\LARGE\color{white!90} Agenda una demostración gratuita y descubre}
+    
+    {\LARGE\color{white!90} cómo ReservaYa puede revolucionar tu negocio}
+\end{center}
+
+\vspace{2.5cm}
+
+\begin{center}
+\begin{tcolorbox}[
+    enhanced,
+    width=15cm,
+    colback=white,
+    colframe=white,
+    boxrule=0pt,
+    arc=0.8cm,
+    drop shadow={shadow xshift=0pt, shadow yshift=5pt, opacity=0.25}
+]
+    \centering
+    
+    {\Huge\bfseries\color{dark} Wendell Abdiel Flashey Martínez}
+    
+    \vspace{0.4cm}
+    
+    {\large\color{textgray} Representante Comercial • ReservaYa Nicaragua}
+    
+    \vspace{1.2cm}
+    
+    \begin{tabular}{cl}
+        {\fontsize{36}{40}\selectfont\color{accent}\faMapMarkerAlt} & {\Huge\bfseries Managua, Nicaragua} \\[0.7cm]
+        {\fontsize{36}{40}\selectfont\color{lime}\faPhone} & {\Huge\bfseries +505 8601 1727} \\[0.7cm]
+        {\fontsize{36}{40}\selectfont\color{lime}\faWhatsapp} & {\Huge\bfseries +505 8601 1727} \\[0.7cm]
+        {\fontsize{36}{40}\selectfont\color{accent}\faEnvelope} & {\Huge contacto@reservaya.ni}
+    \end{tabular}
+    
+    \vspace{1.2cm}
+    
+    \begin{tcolorbox}[
+        enhanced,
+        colback=lightbg,
+        colframe=border,
+        boxrule=1pt,
+        arc=0.4cm
+    ]
+        {\LARGE\bfseries\color{dark} Horario de Atención}
+        
+        \vspace{0.4cm}
+        
+        {\Large Lunes a Viernes: 8:00 AM - 6:00 PM}
+        
+        {\Large Sábados: 9:00 AM - 1:00 PM}
+        
+        \vspace{0.2cm}
+        
+        {\color{textgray} También respondemos WhatsApp fuera de horario}
+    \end{tcolorbox}
+\end{tcolorbox}
+\end{center}
+
+\vspace{2cm}
+
+\begin{center}
+\begin{tikzpicture}
+    \node[
+        rectangle,
+        fill=lime!90!black,
+        text=white,
+        rounded corners=0.6cm,
+        inner sep=22pt,
+        font=\fontsize{28}{32}\selectfont\bfseries,
+        drop shadow={shadow xshift=0pt, shadow yshift=4pt, opacity=0.25}
+    ] {\faComments\ Llama o Escribe Ahora • Demo Gratuita};
+\end{tikzpicture}
+\end{center}
+
+\vspace{1cm}
+
+\begin{center}
+    {\LARGE\color{white} Te mostramos la plataforma funcionando en vivo}
+    
+    {\LARGE\color{white} y respondemos todas tus preguntas}
+    
+    \vspace{1cm}
+    
+    {\Large\color{white!80}\faGift\ \textbf{Promoción especial}: Menciona este documento}
+    
+    {\Large\color{white!80} y obtén 1 mes adicional gratis en cualquier plan de pago}
+\end{center}
+
+\vfill
+
+\begin{center}
+    {\large\color{white!70} ReservaYa • Transformando la Industria Restaurantera en Nicaragua desde  2025}
+\end{center}
+
+\end{document}
